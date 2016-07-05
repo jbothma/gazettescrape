@@ -8,7 +8,8 @@
 import scrapy
 
 
-class GazettescrapeItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+class GazetteItem(scrapy.Item):
+    label = scrapy.Field()
+    date = scrapy.Field()
+    file_urls = scrapy.Field()
+    files = scrapy.Field()
