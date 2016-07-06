@@ -40,6 +40,9 @@ class GazetteMeta(Base):
                         nullable=False,
                         server_default=func.now(),
                         onupdate=func.current_timestamp())
+    type = Column(String,
+                  nullable=False,
+                  index=True)
 
     def __repr__(self):
         return "<GazetteMeta(id=%r, label='%s', published_date='%s'," \
@@ -80,7 +83,8 @@ class DBPipeline(object):
                 store_path=item['files'][0]['path'],
                 published_date=item['published_date'],
                 last_seen=func.now(),
-                first_seen=func.now()
+                first_seen=func.now(),
+                type=spider.gazette_type
             )
             session.add(gazette)
         session.commit()

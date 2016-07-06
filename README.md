@@ -1,10 +1,30 @@
 # gazettescrape
 
+## Minimal Configuration
+
 Depends on the following DB URI being accessible or overridden to another
 
 ```
 GAZETTE_DB_URI = 'postgres://gazettes@localhost/gazettes'
 ```
+
+## Running
+
+## Government Printing Works (GPW) spider
+
+Arguments:
+```
+gazette_type='http://www.gpwonline.co.za/Gazettes/Pages/Published-Liquor-Licenses.aspx'
+start_url='http://www.gpwonline.co.za/Gazettes/Pages/Published-Liquor-Licenses.aspx'
+```
+
+e.g. locally
+
+```
+scrapy crawl -a gazette_type='http://www.gpwonline.co.za/Gazettes/Pages/Published-Liquor-Licenses.aspx' -a start_url='http://www.gpwonline.co.za/Gazettes/Pages/Published-Liquor-Licenses.aspx' gpw
+```
+
+## Extended configuration
 
 To store files in S3, set/override the following settings:
 

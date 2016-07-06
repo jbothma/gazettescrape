@@ -5,9 +5,11 @@ from datetime import datetime
 class GpwSpider(scrapy.Spider):
     name = "gpw"
     allowed_domains = ["gpwonline.co.za"]
-    start_urls = [
-        "http://www.gpwonline.co.za/Gazettes/Pages/Published-Liquor-Licenses.aspx?p=1"
-    ]
+    start_urls = None
+
+    def __init__(self, gazette_type=None, start_url=None):
+        self.gazette_type = gazette_type
+        self.start_urls = [start_url]
 
     def parse(self, response):
         gazette_row_css = '.GazetteTitle'
