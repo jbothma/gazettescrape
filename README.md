@@ -26,6 +26,23 @@ e.g. locally
 scrapy crawl -a gazette_type='http://www.gpwonline.co.za/Gazettes/Pages/Published-Liquor-Licenses.aspx' gpw
 ```
 
+## DB Migrations
+
+### Locally
+
+```
+PYTHONPATH=. alembic revision --autogenerate -m "I changed field something something"
+PYTHONPATH=. alembic upgrade +1
+```
+
+### Production/other environments
+
+Copy alembic.ini and refer to that.
+
+```
+PYTHONPATH=. alembic -c alembic_prod.ini upgrade +1
+```
+
 ## Extended configuration
 
 To store files in S3, set/override the following settings:
