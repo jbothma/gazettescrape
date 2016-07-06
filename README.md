@@ -1,5 +1,11 @@
 # gazettescrape
 
+Depends on the following DB URI being accessible or overridden to another
+
+```
+GAZETTE_DB_URI = 'postgres://gazettes@localhost/gazettes'
+```
+
 To store files in S3, set/override the following settings:
 
 ```
