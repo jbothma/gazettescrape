@@ -3,3 +3,4 @@ shub
 boto==2.41
 sqlalchemy==1.0.13
 psycopg2==2.6.1
+alembic==0.8.6
