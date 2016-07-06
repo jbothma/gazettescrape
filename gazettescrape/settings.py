@@ -66,9 +66,12 @@ ROBOTSTXT_OBEY = True
 # See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
     'scrapy.pipelines.files.FilesPipeline': 1,
+    'gazettescrape.pipelines.DBPipeline': 2,
 }
 
 FILES_STORE = 'gazettes'
+
+GAZETTE_DB_URI = 'postgres://gazettes@localhost/gazettes'
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See http://doc.scrapy.org/en/latest/topics/autothrottle.html

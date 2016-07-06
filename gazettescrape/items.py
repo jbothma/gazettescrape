@@ -10,6 +10,6 @@ import scrapy
 
 class GazetteItem(scrapy.Item):
     label = scrapy.Field()
-    date = scrapy.Field()
+    published_date = scrapy.Field()
     file_urls = scrapy.Field()
     files = scrapy.Field()

@@ -1,6 +1,6 @@
 import scrapy
 from gazettescrape.items import GazetteItem
-
+from datetime import datetime
 
 class GpwSpider(scrapy.Spider):
     name = "gpw"
@@ -18,5 +18,7 @@ class GpwSpider(scrapy.Spider):
             file_urls_xpath = 'div/a/@href'
             gazette_item['file_urls'] = row.xpath(file_urls_xpath).extract()
             date_xpath = 'div/text()'
-            gazette_item['date'] = row.xpath(date_xpath)[0].extract()
+            gpw_pub_date = row.xpath(date_xpath)[0].extract()
+            date = datetime.strptime(gpw_pub_date, '%d/%m/%Y')
+            gazette_item['published_date'] = date.isoformat()
             yield gazette_item
