@@ -9,6 +9,8 @@ class GpwSpider(scrapy.Spider):
 
     def __init__(self, gazette_type=None, start_url=None):
         self.gazette_type = gazette_type
+        if start_url is None:
+            start_url = gazette_type
         self.start_urls = [start_url]
 
     def parse(self, response):

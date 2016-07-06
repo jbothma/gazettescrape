@@ -1,4 +1,4 @@
-# gazettescrape
+# gazettescrape - South African Government Gazette scraper
 
 ## Minimal Configuration
 
@@ -18,10 +18,12 @@ gazette_type='http://www.gpwonline.co.za/Gazettes/Pages/Published-Liquor-License
 start_url='http://www.gpwonline.co.za/Gazettes/Pages/Published-Liquor-Licenses.aspx'
 ```
 
+If start_url is not provided, it uses gazette_type as start_url
+
 e.g. locally
 
 ```
-scrapy crawl -a gazette_type='http://www.gpwonline.co.za/Gazettes/Pages/Published-Liquor-Licenses.aspx' -a start_url='http://www.gpwonline.co.za/Gazettes/Pages/Published-Liquor-Licenses.aspx' gpw
+scrapy crawl -a gazette_type='http://www.gpwonline.co.za/Gazettes/Pages/Published-Liquor-Licenses.aspx' gpw
 ```
 
 ## Extended configuration
