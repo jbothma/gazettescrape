@@ -70,3 +70,17 @@ To store the item feed in S3, set/override the following settings:
 FEED_URI = s3://code4sa-gazettes/scrape-feed/spider-%(name)s/start-%(time)s.json
 FEED_FORMAT = jsonlines
 ```
+
+## Gazette types
+
+- National
+  - National Gazette Liquour License Special Edition
+  - Regulation Gazette
+  - Extraordinary Gazette
+- Provincial
+  - Provincial Gazette Liquour License Special Edition
+  - Provincial Separate Gazette
+  - Provincial Extraordinary Gazettes
+    - e.g. demarcation changes
+- Legal Gazette
+- Separate Gazette
