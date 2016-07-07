@@ -12,13 +12,12 @@ GAZETTE_DB_URI = 'postgres://gazettes@localhost/gazettes'
 
 ## Government Printing Works (GPW) spider
 
-Arguments:
+Optional Arguments:
 ```
-gazette_type='http://www.gpwonline.co.za/Gazettes/Pages/Published-Liquor-Licenses.aspx'
-start_url='http://www.gpwonline.co.za/Gazettes/Pages/Published-Liquor-Licenses.aspx'
+start_url=http://www.gpwonline.co.za/Gazettes/Pages/Published-Liquor-Licenses.aspx
 ```
 
-If start_url is not provided, it uses gazette_type as start_url
+Override default start URL set with a single specific URL
 
 e.g. locally
 

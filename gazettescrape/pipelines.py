@@ -40,9 +40,9 @@ class GazetteMeta(Base):
                         nullable=False,
                         server_default=func.now(),
                         onupdate=func.current_timestamp())
-    type = Column(String,
-                  nullable=False,
-                  index=True)
+    referrer = Column(String,
+                      nullable=False,
+                      index=True)
 
     def __repr__(self):
         return "<GazetteMeta(id=%r, label='%s', published_date='%s'," \
@@ -75,15 +75,16 @@ class DBPipeline(object):
         gazette = session.query(GazetteMeta).filter_by(original_uri=original_uri).first()
         if gazette:
             gazette.last_seen = func.now()
+            gazette.referrer = item['referrer']
         else:
             gazette = GazetteMeta(
                 label=item['label'],
                 original_uri=item['file_urls'][0],
+                referrer=item['referrer'],
                 store_path=item['files'][0]['path'],
                 published_date=item['published_date'],
                 last_seen=func.now(),
-                first_seen=func.now(),
-                type=spider.gazette_type
+                first_seen=func.now()
             )
             session.add(gazette)
         session.commit()

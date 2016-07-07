@@ -13,3 +13,4 @@ class GazetteItem(scrapy.Item):
     published_date = scrapy.Field()
     file_urls = scrapy.Field()
     files = scrapy.Field()
+    referrer = scrapy.Field()
