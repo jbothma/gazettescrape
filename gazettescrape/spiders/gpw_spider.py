@@ -1,6 +1,7 @@
 import scrapy
 from gazettescrape.items import GazetteItem
 from datetime import datetime
+import urlparse
 
 
 class GpwSpider(scrapy.Spider):
@@ -42,3 +43,8 @@ class GpwSpider(scrapy.Spider):
             gazette_item['published_date'] = date.isoformat()
             gazette_item['referrer'] = response.url
             yield gazette_item
+
+        next_page_xpath = '//div[@class="Paging"]/div/strong/following-sibling::a/@href'
+        next_pages = response.xpath(next_page_xpath)
+        if next_pages:
+            yield scrapy.Request(urlparse.urljoin(response.url, next_pages[0].extract()))
