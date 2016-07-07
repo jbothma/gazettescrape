@@ -43,6 +43,16 @@ Copy alembic.ini and refer to that.
 PYTHONPATH=. alembic -c alembic_prod.ini upgrade +1
 ```
 
+## Deployment
+
+### To scrapinghub
+
+First deploy dependencies as eggs, e.g.
+
+```
+shub deploy-egg --from-pypi psycopg2 79283
+```
+
 ## Extended configuration
 
 To store files in S3, set/override the following settings:
