@@ -63,7 +63,7 @@ class DBPipeline(object):
         )
 
     def open_spider(self, spider):
-        self.engine = create_engine(self.db_uri, echo=True)
+        self.engine = create_engine(self.db_uri)
         self.Session = sessionmaker(bind=self.engine)
 
     def close_spider(self, spider):
