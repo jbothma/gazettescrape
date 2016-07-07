@@ -52,6 +52,12 @@ First deploy dependencies as eggs, e.g.
 shub deploy-egg --from-pypi psycopg2 79283
 ```
 
+Then deploy the scrapy project itself
+
+```
+shub deploy 79283
+```
+
 ## Extended configuration
 
 To store files in S3, set/override the following settings:
