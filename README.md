@@ -10,7 +10,7 @@ GAZETTE_DB_URI = 'postgres://gazettes@localhost/gazettes'
 
 ## Running
 
-## Government Printing Works (GPW) spider
+### Government Printing Works (GPW) spider
 
 Optional Arguments:
 ```
@@ -23,6 +23,16 @@ e.g. locally
 
 ```
 scrapy crawl -a gazette_type='http://www.gpwonline.co.za/Gazettes/Pages/Published-Liquor-Licenses.aspx' gpw
+```
+or
+```
+scrapy crawl gpw
+```
+
+### Western Cape Province
+
+```
+scrapy crawl western_cape
 ```
 
 ## DB Migrations
