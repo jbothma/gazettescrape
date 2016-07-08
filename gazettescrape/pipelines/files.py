@@ -21,7 +21,8 @@ except ImportError:
 
 from twisted.internet import defer, threads
 
-from scrapy.pipelines.media import MediaPipeline
+from gazettescrape.pipelines.media import MediaPipeline
+
 from scrapy.settings import Settings
 from scrapy.exceptions import NotConfigured, IgnoreRequest
 from scrapy.http import Request
@@ -223,10 +224,10 @@ class FilesPipeline(MediaPipeline):
     def __init__(self, store_uri, download_func=None, settings=None):
         if not store_uri:
             raise NotConfigured
-        
+
         if isinstance(settings, dict) or settings is None:
             settings = Settings(settings)
-        
+
         self.store = self._get_store(store_uri)
         self.expires = settings.getint('FILES_EXPIRES')
         self.files_urls_field = settings.get('FILES_URLS_FIELD')

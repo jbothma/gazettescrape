@@ -7,7 +7,10 @@ import re
 
 class GpwSpider(scrapy.Spider):
     name = "western_cape"
-    allowed_domains = ["westerncape.gov.za"]
+    allowed_domains = [
+        'westerncape.gov.za',
+        'www.capegateway.gov.za'
+    ]
     start_urls = {
         "https://www.westerncape.gov.za/documents/public_info/P",
     }
@@ -35,19 +38,21 @@ class GpwSpider(scrapy.Spider):
             gazette_item = GazetteItem()
             label_xpath = 'text()'
             gazette_item['label'] = anchor.xpath(label_xpath)[0].extract()
-            file_urls_xpath = '@href'
-            gazette_item['file_urls'] = anchor.xpath(file_urls_xpath).extract()
+            file_url_xpath = '@href'
+            gazette_url = anchor.xpath(file_url_xpath)[0].extract()
+            gazette_item['file_urls'] = [gazette_url]
             dateregex = 'Provincial Gazette[\w\s]*- ?(\w+, )?(\d+ \w+ \d+)'
             try:
                 wc_pub_date = re.search(dateregex, gazette_item['label']).groups()[-1]
                 date = datetime.strptime(wc_pub_date, '%d %B %Y')
+                gazette_item['published_date'] = date.isoformat()
             except AttributeError:
                 dateregex = 'Provincial Gazette[\w\s]*- ?(\w+, )?(\d+ \w+)'
                 try:
                     wc_pub_date = re.search(dateregex, gazette_item['label']).groups()[-1]
                     date = datetime.strptime(wc_pub_date, '%d %B')
                     title_xpath = 'h1/text()'
-                    title = response.xpath(title_css).extract()[0]
+                    title = response.xpath(title_xpath).extract()[0]
                     title_dateregex = 'Provincial Gazette - ?(\w+ \d+)'
                     title_date = datetime.strptime(re.search(title_dateregex, title).group(1), '%B %Y')
                     if date.month == title_date.month:
