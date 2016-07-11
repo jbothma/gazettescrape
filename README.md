@@ -99,3 +99,11 @@ FEED_FORMAT = jsonlines
     - e.g. demarcation changes
 - Legal Gazette
 - Separate Gazette
+
+## Gazette Properties
+
+- Issue number
+- Title
+- Publication Date
+- Jurisdiction Level ("national" or "provincial")
+- Jurisdiction (e.g. "RSA" or "KZN")
