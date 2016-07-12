@@ -107,3 +107,46 @@ FEED_FORMAT = jsonlines
 - Publication Date
 - Jurisdiction Level ("national" or "provincial")
 - Jurisdiction (e.g. "RSA" or "KZN")
+
+## Publications
+
+- http://www.gpwonline.co.za/Gazettes/Pages/Published-Separate-Gazettes.aspx
+  - Page linked from
+    - Name - (gazette number) (pub day-month) (govt dept or something)
+      - e.g. "40132 11-07 National Treasury", "40133 11-07 Icasa"
+    - Full Publication date
+    - File name - same as link label with _ instead of spaces
+  - Gazette contents
+    - Cover page
+      - Title: "Government Gazette"
+      - Volume Number
+      - Publication Date
+      - Gazette Number
+    - Table of Contents
+      - Section Headings
+        - e.g. "Board Notices" when filename is "BoardFSB"
+        - e.g. "General Notices" when filename is "TradeIndus" or "Icasa"
+        - e.g. "Government Notices" when filename is "NatTreas"
+      - Notice Number
+      - Notice Title
+      - Gazette Number
+      - Page number in gazette
+    - Page header: "Government Gazette"
+- http://www.gpwonline.co.za/Gazettes/Pages/Published-National-Regulation-Gazettes.aspx
+  - Page linked from
+    - Name
+      - e.g. "... NationalRegulation" or "... Labour" or "... NatRegulation"
+  - Gazette contents
+    - Cover page
+      - Title: "Government Gazette"
+      - Subtitle: "Regulation Gazette"
+      - Volume Number e.g. "Vol. 609"
+      - Gazette Number e.g. "No. 39817"
+      - Regulation Gazette Number e.g. "No. 10577"
+    - Page header: "Government Gazette"
+    - Table of Contents
+      - Section Headings
+        - e.g. "Government Notices"
+          - Subsection Headings
+            - e.g. "Environmental Affairs, Deptartment of" when name is "NationalRegulation"
+            - e.g. "Labour, Department of" when name is "NationalRegulation" or "Labour"
