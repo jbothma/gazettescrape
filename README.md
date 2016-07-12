@@ -202,10 +202,15 @@ FEED_FORMAT = jsonlines
   - Road carrier permits
 - Tender Bulletin
 
-National Gazettes and Tender Bulletins seem to fall under the same volume
+National Gazettes and Tender Bulletins seem to fall under the same volume.
+
+Western Cape Provincial Gazettes don't seem to have volumes - just one big series.
+
+Free state doesn't have volumes and the series wraps on 1 April. Or at least it might have volumes and parts within an issue.
 
 ## Other notes
 
 - Sometimes the cover page says "Part 1 of 2". It seems like the second part is included in the same PDF.
 - An example of an official reference to a gazette
   - _Government Notice 2432, Government Gazette, Vol. 400, No. 19377 of 19 Octover 1998_
+  - Republic of South Africa. 2006. _Government Tender Bulletin Vol. 488 No. 2424._ Pretoria: Government Printing Works
