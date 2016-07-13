@@ -10,6 +10,13 @@ from sqlalchemy.orm import sessionmaker
 from urlparse import urlparse
 import os
 from shutil import copyfile
+from pdfminer.pdfparser import PDFParser
+from pdfminer.pdfdocument import PDFDocument
+from pdfminer.pdfpage import PDFPage
+from pdfminer.pdfpage import PDFTextExtractionNotAllowed
+from pdfminer.pdfinterp import PDFResourceManager
+from pdfminer.pdfinterp import PDFPageInterpreter
+from pdfminer.pdfdevice import PDFDevice
 
 WEB_SCRAPE_STORE_URI = "file:///home/jdb/proj/code4sa/corpdata/scrapyfilestore"
 LOCAL_CACHE_STORE_PATH = "../archivecachefilestore"
@@ -26,6 +33,7 @@ def main():
     cache_path = LOCAL_CACHE_STORE_PATH
 
     for webgazette in session.query(WebScrapedGazette):
+        # Get the PDF
         cached_gazette_path = os.path.join(cache_path, webgazette.store_path)
         if not os.path.exists(cached_gazette_path):
             cached_gazette_dir = os.path.dirname(cached_gazette_path)
@@ -34,6 +42,10 @@ def main():
             if web_scrape_store_uri.scheme == 'file':
                 scraped_path = os.path.join(web_scrape_store_uri.path, webgazette.store_path)
                 copyfile(scraped_path, cached_gazette_path)
+
+
+        with open(cached_gazette_path, 'rb') as f:
+
 
     engine.dispose()
 

@@ -4,3 +4,4 @@ botocore==1.4.34
 sqlalchemy==1.0.13
 psycopg2==2.6.1
 alembic==0.8.6
+pdfminer==20140328
