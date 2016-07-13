@@ -8,7 +8,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import sqlalchemy.sql.functions as func
-from gazettes.models import GazetteMeta
+from gazettes.models import WebScrapedGazette
 
 
 class DBPipeline(object):
@@ -33,12 +33,12 @@ class DBPipeline(object):
     def process_item(self, item, spider):
         original_uri = item['file_urls'][0]
         session = self.Session()
-        gazette = session.query(GazetteMeta).filter_by(original_uri=original_uri).first()
+        gazette = session.query(WebScrapedGazette).filter_by(original_uri=original_uri).first()
         if gazette:
             gazette.last_seen = func.now()
             gazette.referrer = item['referrer']
         else:
-            gazette = GazetteMeta(
+            gazette = WebScrapedGazette(
                 label=item['label'],
                 original_uri=item['file_urls'][0],
                 referrer=item['referrer'],
