@@ -69,7 +69,7 @@ ITEM_PIPELINES = {
     'gazettescrape.pipelines.db.DBPipeline': 2,
 }
 
-FILES_STORE = 'gazettes'
+FILES_STORE = '../scrapyfilestore'
 
 GAZETTE_DB_URI = 'postgres://gazettes@localhost/gazettes'
 
