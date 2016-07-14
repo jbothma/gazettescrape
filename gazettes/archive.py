@@ -10,8 +10,16 @@ from sqlalchemy.orm import sessionmaker
 from urlparse import urlparse
 import os
 from shutil import copyfile
-import pyPdf
 import re
+from pdfminer.pdfparser import PDFParser
+from pdfminer.pdfdocument import PDFDocument
+from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
+from pdfminer.converter import TextConverter
+from pdfminer.layout import LAParams
+from pdfminer.pdfpage import PDFPage
+import StringIO
+from tempfile import mkdtemp
+
 
 WEB_SCRAPE_STORE_URI = "file:///home/jdb/proj/code4sa/corpdata/scrapyfilestore"
 LOCAL_CACHE_STORE_PATH = "../archivecachefilestore"
@@ -21,6 +29,7 @@ DB_URI = 'postgres://gazettes@localhost/gazettes'
 
 
 def main():
+    tmpdir = mkdtemp(prefix='gazettes-archive')
     engine = create_engine(DB_URI)
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -28,9 +37,11 @@ def main():
     cache_path = LOCAL_CACHE_STORE_PATH
 
     for webgazette in session.query(WebScrapedGazette):
+        print
         # Get the PDF
         cached_gazette_path = os.path.join(cache_path, webgazette.store_path)
         if not os.path.exists(cached_gazette_path):
+            print("Cache MISS %s" % webgazette.store_path)
             cached_gazette_dir = os.path.dirname(cached_gazette_path)
             if not os.path.exists(cached_gazette_dir):
                 os.makedirs(cached_gazette_dir)
@@ -38,19 +49,45 @@ def main():
                 scraped_path = os.path.join(web_scrape_store_uri.path,
                                             webgazette.store_path)
                 copyfile(scraped_path, cached_gazette_path)
+        else:
+            print("Cache HIT %s" % webgazette.store_path)
 
         # Archive the gazette
-        print("\n%s\n%s" % (webgazette.original_uri, cached_gazette_path))
+        print("%s\n%s" % (webgazette.original_uri, cached_gazette_path))
         try:
-            with file(cached_gazette_path, 'rb') as f:
-                pdf = pyPdf.PdfFileReader(f)
-                if pdf.isEncrypted:
-                    pdf.decrypt('')
-                ArchivedGazette
-                pagecount = pdf.getNumPages()
+            with open(cached_gazette_path, 'rb') as fp:
+                rsrcmgr = PDFResourceManager()
+                outfp = StringIO.StringIO()
+                parser = PDFParser(fp)
+                password = ""
+                document = PDFDocument(parser, password)
+                if not document.is_extractable:
+                    print("### not extractable")
+                    tmppath = os.path.join(tmpdir, webgazette.store_path)
+                    if not os.path.exists(os.path.dirname(tmppath)):
+                        os.makedirs(os.path.dirname(tmppath))
+                    result = os.system("qpdf --password=%s --decrypt %s %s"
+                                       % (password, cached_gazette_path, tmppath))
+                    if result == 0:
+                        copyfile(tmppath, cached_gazette_path)
+                    else:
+                        raise Exception("qpd exit status %r" % result)
+
+                device = TextConverter(rsrcmgr, outfp, codec='utf-8', laparams=LAParams())
+                interpreter = PDFPageInterpreter(rsrcmgr, device)
+                maxpages = 0
+                caching = True
+                pagenos = set()
+                cover_page = PDFPage.get_pages(fp, pagenos, maxpages=maxpages, password=password,caching=caching, check_extractable=True).next()
+                interpreter.process_page(cover_page)
+                device.close()
+                t = outfp.getvalue()
+
+                pagecount = 1
                 print(pagecount)
-                cover_page_text = pdf.getPage(0).extractText()
-                publication_title = get_publication_title(webgazette.referrer)
+                cover_page_text = t
+                publication_title = get_publication_title(webgazette.referrer,
+                                                          webgazette.label)
                 print(publication_title)
                 publication_subtitle = get_publication_subtitle(webgazette.referrer,
                                                                 webgazette.label)
@@ -101,7 +138,7 @@ def main():
     engine.dispose()
 
 
-def get_publication_title(referrer):
+def get_publication_title(referrer, label):
     url = urlparse(referrer)
     if url.hostname == 'www.gpwonline.co.za':
         if url.path in {
@@ -116,13 +153,22 @@ def get_publication_title(referrer):
             return 'Provincial Gazette'
         elif url.path in {
                 '/Gazettes/Pages/Published-Legal-Gazettes.aspx',
-                '/Gazettes/Pages/Published-Liquor-Licenses.aspx',
                 '/Gazettes/Pages/Published-National-Government-Gazettes.aspx',
                 '/Gazettes/Pages/Published-National-Regulation-Gazettes.aspx',
                 '/Gazettes/Pages/Published-Separate-Gazettes.aspx',
                 '/Gazettes/Pages/Road-Access-Permits.aspx',
         }:
             return 'Government Gazette'
+        elif url.path == '/Gazettes/Pages/Published-Liquor-Licenses.aspx':
+            if ('NCape' in label or
+                'NKaap' in label or
+                'Northern Cape' in label or
+                'gaut' in label.lower()):
+                return 'Provincial Gazette'
+            elif 'National' in label:
+                return 'Government Gazette'
+            else:
+                raise Exception("unknon jurisdiction for '%s'" % label)
         elif url.path == '/Gazettes/Pages/Published-Tender-Bulletin.aspx':
             return 'Tender Bulletin'
         else:
@@ -216,11 +262,17 @@ def get_issue_number(referrer, label):
 
 
 def get_volume_number(referrer, cover_page_text):
-    regex = 'Vol. ?(\d+)'
-    try:
-        return int(re.search(regex, cover_page_text).group(1))
-    except AttributeError:
-        raise Exception("Can't find volume number in %r" % cover_page_text)
+    url = urlparse(referrer)
+    if url.hostname == 'www.gpwonline.co.za':
+        regex = 'Vol. ?(\d+)'
+        try:
+            return int(re.search(regex, cover_page_text).group(1))
+        except AttributeError:
+            raise Exception("Can't find volume number in %r" % cover_page_text)
+    elif url.hostname == 'www.westerncape.gov.za':
+        return None
+    else:
+        raise Exception
 
 
 def get_jurisdiction_code(referrer, label):

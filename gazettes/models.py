@@ -133,11 +133,14 @@ class ArchivedGazette(Base):
                 "minimum": 1,
                 "maximum": 80000,
             },
-            "volume_number": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 2000,
-            },
+            "volume_number": {"oneOf": [
+                {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 2000,
+                },
+                {"type": "null"}
+            ]},
             "jurisdiction_code": {"type": "string"},
             "publication_date": {"type": "string"},
             "unique_id": {"type": "string"},

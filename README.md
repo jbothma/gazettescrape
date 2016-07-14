@@ -1,5 +1,9 @@
 # gazettescrape - South African Government Gazette scraper
 
+## Non-python dependencies
+
+- qpdf
+
 ## Minimal Configuration
 
 Depends on the following DB URI being accessible or overridden to another
