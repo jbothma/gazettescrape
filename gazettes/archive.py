@@ -55,35 +55,24 @@ def main():
         # Archive the gazette
         print("%s\n%s" % (webgazette.original_uri, cached_gazette_path))
         try:
+            password = ""
+            ensure_extractable(cached_gazette_path,
+                               password,
+                               tmpdir,
+                               webgazette.store_path)
+
             with open(cached_gazette_path, 'rb') as fp:
                 rsrcmgr = PDFResourceManager()
                 outfp = StringIO.StringIO()
-                parser = PDFParser(fp)
-                password = ""
-                document = PDFDocument(parser, password)
-                if not document.is_extractable:
-                    print("### not extractable")
-                    tmppath = os.path.join(tmpdir, webgazette.store_path)
-                    if not os.path.exists(os.path.dirname(tmppath)):
-                        os.makedirs(os.path.dirname(tmppath))
-                    result = os.system("qpdf --password=%s --decrypt %s %s"
-                                       % (password, cached_gazette_path, tmppath))
-                    if result == 0:
-                        copyfile(tmppath, cached_gazette_path)
-                    else:
-                        raise Exception("qpd exit status %r" % result)
-
                 device = TextConverter(rsrcmgr, outfp, codec='utf-8', laparams=LAParams())
                 interpreter = PDFPageInterpreter(rsrcmgr, device)
-                maxpages = 0
-                caching = True
-                pagenos = set()
-                cover_page = PDFPage.get_pages(fp, pagenos, maxpages=maxpages, password=password,caching=caching, check_extractable=True).next()
+                pages = list(PDFPage.get_pages(fp))
+                pagecount = len(pages)
+                cover_page = pages[0]
                 interpreter.process_page(cover_page)
                 device.close()
                 t = outfp.getvalue()
 
-                pagecount = 1
                 print(pagecount)
                 cover_page_text = t
                 publication_title = get_publication_title(webgazette.referrer,
@@ -136,6 +125,26 @@ def main():
 
     session.commit()
     engine.dispose()
+
+
+def ensure_extractable(cached_gazette_path, password, tmpdir, store_path):
+    with open(cached_gazette_path, 'rb') as fp:
+        parser = PDFParser(fp)
+        document = PDFDocument(parser, password)
+        if not document.is_extractable:
+            fp.close()
+            print("### not extractable")
+            tmppath = os.path.join(tmpdir, store_path)
+            if not os.path.exists(os.path.dirname(tmppath)):
+                os.makedirs(os.path.dirname(tmppath))
+            result = os.system("qpdf --password=%s --decrypt %s %s"
+                               % (password, cached_gazette_path, tmppath))
+            if result == 0:
+                copyfile(tmppath, cached_gazette_path)
+            else:
+                raise Exception("qpd exit status %r" % result)
+        else:
+            fp.close()
 
 
 def get_publication_title(referrer, label):
