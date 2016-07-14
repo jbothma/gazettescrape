@@ -347,7 +347,7 @@ def get_unique_id(publication_title,
         )
     else:
         return "%s-%s-vol-%s-no-%s" % (
-        title_slug(publication_title),
+            title_slug(publication_title),
             jurisdiction_code,
             volume_number,
             issue_number

@@ -91,7 +91,7 @@ class ArchivedGazette(Base):
     def __repr__(self):
         return "<WebScrapedGazette(id=%r, publication_title='%s', " \
             "jurisdiction_code='%s', volume_number=%s, issue_number=%s, " \
-            " publication_date='%s', )>" \
+            "publication_date='%s')>" \
             % (self.id, self.publication_title, self.jurisdiction_code,
                self.volume_number, self.issue_number, self.publication_date)
 
