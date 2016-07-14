@@ -13,7 +13,6 @@ from shutil import copyfile
 import pyPdf
 import re
 
-
 WEB_SCRAPE_STORE_URI = "file:///home/jdb/proj/code4sa/corpdata/scrapyfilestore"
 LOCAL_CACHE_STORE_PATH = "../archivecachefilestore"
 ARCHIVE_STORE = "file:///home/jdb/proj/code4sa/corpdata/archivefilestore"
@@ -64,13 +63,15 @@ def main():
                 print("issue %r" % issue_number)
                 volume_number = get_volume_number(webgazette.referrer, cover_page_text)
                 print("volume %r" % volume_number)
-                jurisdiction_code = get_jurisdiction_code(webgazette.referrer)
+                jurisdiction_code = get_jurisdiction_code(webgazette.referrer,
+                                                          webgazette.label)
                 unique_id = get_unique_id(publication_title,
                                           publication_subtitle,
                                           jurisdiction_code,
                                           volume_number,
                                           issue_number,
                                           special_issue)
+                print(unique_id)
                 archive_path = get_archive_path(publication_title,
                                                 publication_subtitle,
                                                 jurisdiction_code,
@@ -223,8 +224,51 @@ def get_volume_number(referrer, cover_page_text):
     return 0
 
 
-def get_jurisdiction_code(referrer):
-    return 'ZA'
+def get_jurisdiction_code(referrer, label):
+    url = urlparse(referrer)
+    if url.hostname == 'www.gpwonline.co.za':
+        if url.path == '/Gazettes/Pages/Provincial-Gazettes-Eastern-Cape.aspx':
+            return 'ZA-WC'
+        elif url.path == '/Gazettes/Pages/Provincial-Gazettes-Gauteng.aspx':
+            return 'ZA-GT'
+        elif url.path == '/Gazettes/Pages/Provincial-Gazettes-KwaZulu-Natal.aspx':
+            return 'ZA-NL'
+        elif url.path == '/Gazettes/Pages/Provincial-Gazettes-Limpopo.aspx':
+            return 'ZA-LP'
+        elif url.path == '/Gazettes/Pages/Provincial-Gazettes-Mpumalanga.aspx':
+            return 'ZA-MP'
+        elif url.path == '/Gazettes/Pages/Provincial-Gazettes-North-West.aspx':
+            return 'ZA-NW'
+        elif url.path == '/Gazettes/Pages/Provincial-Gazettes-Northern-Cape.aspx':
+            return 'ZA-NC'
+        elif url.path in {
+                '/Gazettes/Pages/Published-Legal-Gazettes.aspx',
+                '/Gazettes/Pages/Published-National-Government-Gazettes.aspx',
+                '/Gazettes/Pages/Published-National-Regulation-Gazettes.aspx',
+                '/Gazettes/Pages/Published-Separate-Gazettes.aspx',
+                '/Gazettes/Pages/Road-Access-Permits.aspx',
+                '/Gazettes/Pages/Published-Tender-Bulletin.aspx',
+        }:
+            return 'ZA'
+        elif url.path == '/Gazettes/Pages/Published-Liquor-Licenses.aspx':
+            if ('NCape' in label or
+                'NKaap' in label or
+                'Northern Cape' in label):
+                return 'ZA-NC'
+            elif 'gaut' in label.lower():
+                return 'ZA-GT'
+            elif 'National' in label:
+                return 'ZA'
+            else:
+                raise Exception("unknon jurisdiction for '%s'" % label)
+        else:
+            raise Exception("unknown path '%s'" % url.path)
+    elif url.hostname in {
+            'www.westerncape.gov.za'
+    }:
+        return 'ZA-WC'
+    else:
+        raise Exception
 
 
 def get_unique_id(publication_title,
@@ -233,7 +277,27 @@ def get_unique_id(publication_title,
                   volume_number,
                   issue_number,
                   special_issue):
-    return '1'
+    if volume_number is None:
+        return "%s-%s-no-%s" % (
+            title_slug(publication_title),
+            jurisdiction_code,
+            issue_number
+        )
+    else:
+        return "%s-%s-vol-%s-no-%s" % (
+        title_slug(publication_title),
+            jurisdiction_code,
+            volume_number,
+            issue_number
+        )
+
+
+def title_slug(title):
+    return {
+        'Government Gazette': 'government-gazette',
+        'Provincial Gazette': 'provincial-gazette',
+        'Tender Bulletin': 'tender-bulletin',
+    }[title]
 
 
 def get_archive_path(publication_title,
