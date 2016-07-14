@@ -79,19 +79,19 @@ def main():
                                                 issue_number,
                                                 special_issue,
                                                 webgazette.published_date)
-                archived_gazette = ArchivedGazette(
-                    original_uri=webgazette.original_uri,
-                    archive_path=archive_path,
-                    publication_title=publication_title,
-                    publication_subtitle=publication_subtitle,
-                    special_issue=special_issue,
-                    issue_number=issue_number,
-                    volume_number=volume_number,
-                    jurisdiction_code=jurisdiction_code,
-                    publication_date=webgazette.published_date,
-                    unique_id=unique_id,
-                    pagecount=pagecount,
-                )
+                archived_gazette = ArchivedGazette.fromDict({
+                    'original_uri': webgazette.original_uri,
+                    'archive_path': archive_path,
+                    'publication_title': publication_title,
+                    'publication_subtitle': publication_subtitle,
+                    'special_issue': special_issue,
+                    'issue_number': issue_number,
+                    'volume_number': volume_number,
+                    'jurisdiction_code': jurisdiction_code,
+                    'publication_date': webgazette.published_date,
+                    'unique_id': unique_id,
+                    'pagecount': pagecount,
+                })
                 # session.add(archived_gazette)
 
         except UnicodeEncodeError:
@@ -210,7 +210,7 @@ def get_issue_number(referrer, label):
     else:
         raise Exception
     try:
-        return re.search(regex, label).group(1)
+        return int(re.search(regex, label).group(1))
     except AttributeError:
         raise Exception("Can't find issue number in '%s'" % label)
 
@@ -218,10 +218,9 @@ def get_issue_number(referrer, label):
 def get_volume_number(referrer, cover_page_text):
     regex = 'Vol. ?(\d+)'
     try:
-        return re.search(regex, cover_page_text).group(1)
+        return int(re.search(regex, cover_page_text).group(1))
     except AttributeError:
         raise Exception("Can't find volume number in %r" % cover_page_text)
-    return 0
 
 
 def get_jurisdiction_code(referrer, label):

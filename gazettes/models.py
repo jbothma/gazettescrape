@@ -1,6 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, UniqueConstraint, Integer, String, Date, DateTime
+from sqlalchemy import Column, Integer, String, Date, DateTime
 import sqlalchemy.sql.functions as func
+from jsonschema import validate
 
 Base = declarative_base()
 
@@ -93,3 +94,57 @@ class ArchivedGazette(Base):
             " publication_date='%s', )>" \
             % (self.id, self.publication_title, self.jurisdiction_code,
                self.volume_number, self.issue_number, self.publication_date)
+
+    @staticmethod
+    def fromDict(dict):
+        valdict = dict.copy()
+        valdict['publication_date'] = valdict['publication_date'].isoformat()
+        validate(valdict, ArchivedGazette.schema)
+        return ArchivedGazette(
+            original_uri=dict['original_uri'],
+            archive_path=dict['archive_path'],
+            publication_title=dict['publication_title'],
+            publication_subtitle=dict['publication_subtitle'],
+            special_issue=dict['special_issue'],
+            issue_number=dict['issue_number'],
+            volume_number=dict['volume_number'],
+            jurisdiction_code=dict['jurisdiction_code'],
+            publication_date=dict['publication_date'],
+            unique_id=dict['unique_id'],
+            pagecount=dict['pagecount'],
+        )
+
+    schema = {
+        "type": "object",
+        "properties": {
+            "original_uri": {"type": "string"},
+            "archive_path": {"type": "string"},
+            "publication_title": {"type": "string"},
+            "publication_subtitle": {"oneOf": [
+                {"type": "string"},
+                {"type": "null"},
+            ]},
+            "special_issue": {"oneOf": [
+                {"type": "string"},
+                {"type": "null"},
+            ]},
+            "issue_number": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 80000,
+            },
+            "volume_number": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 2000,
+            },
+            "jurisdiction_code": {"type": "string"},
+            "publication_date": {"type": "string"},
+            "unique_id": {"type": "string"},
+            "pagecount": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 200,
+            },
+        },
+    }
