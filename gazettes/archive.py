@@ -105,6 +105,7 @@ def main():
                                                 issue_number,
                                                 special_issue,
                                                 webgazette.published_date)
+                print(archive_path)
                 archived_gazette = ArchivedGazette.fromDict({
                     'original_uri': webgazette.original_uri,
                     'archive_path': archive_path,
@@ -118,6 +119,7 @@ def main():
                     'unique_id': unique_id,
                     'pagecount': pagecount,
                 })
+                print(archived_gazette)
                 # session.add(archived_gazette)
 
         except UnicodeEncodeError:
@@ -229,7 +231,7 @@ def get_special_issue(referrer):
         if url.path == '/Gazettes/Pages/Published-Liquor-Licenses.aspx':
             return 'Liquor Licenses'
         elif url.path == '/Gazettes/Pages/Road-Access-Permits.aspx':
-            return 'Legal Gazette XX'
+            return 'Road Carrier Permits'
         elif url.path in {
                 '/Gazettes/Pages/Provincial-Gazettes-Eastern-Cape.aspx',
                 '/Gazettes/Pages/Provincial-Gazettes-Gauteng.aspx',
@@ -367,7 +369,47 @@ def get_archive_path(publication_title,
                      issue_number,
                      special_issue,
                      publication_date):
-    return '/'
+    base_name = get_base_name(publication_title, publication_subtitle)
+    if volume_number is None:
+        return "/%s/%s/%s-%s-no-%s-dated-%s.pdf" % (
+            jurisdiction_code,
+            publication_date.year,
+            base_name,
+            jurisdiction_code,
+            issue_number,
+            publication_date.isoformat()
+        )
+    else:
+        if special_issue:
+            special_suffix = "-%s" % special_slug(special_issue)
+        else:
+            special_suffix = ''
+        return "/%s/%s/%s-%s-vol-%s-no-%s-dated-%s%s.pdf" % (
+            jurisdiction_code,
+            publication_date.year,
+            base_name,
+            jurisdiction_code,
+            volume_number,
+            issue_number,
+            publication_date.isoformat(),
+            special_suffix,
+        )
+
+
+def get_base_name(title, subtitle):
+    return {
+        ('Government Gazette', None): 'government-gazette',
+        ('Provincial Gazette', None): 'provincial-gazette',
+        ('Government Gazette', 'Regulation Gazette'): 'regulation-gazette',
+        ('Tender Bulletin', None): 'tender-bulletin',
+    }[(title, subtitle)]
+
+
+def special_slug(special_issue):
+    return {
+        'Liquor Licenses': 'liquor-licenses',
+        'Road Carried Permits': 'road-carrier-permits'
+    }[special_issue]
 
 
 if __name__ == "__main__":
