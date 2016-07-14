@@ -11,6 +11,7 @@ from urlparse import urlparse
 import os
 from shutil import copyfile
 import pyPdf
+import re
 
 
 WEB_SCRAPE_STORE_URI = "file:///home/jdb/proj/code4sa/corpdata/scrapyfilestore"
@@ -45,17 +46,24 @@ def main():
             with file(cached_gazette_path, 'rb') as f:
                 pdf = pyPdf.PdfFileReader(f)
                 if pdf.isEncrypted:
-                    print("ENCRYPTED")
                     pdf.decrypt('')
                 ArchivedGazette
                 pagecount = pdf.getNumPages()
+                print(pagecount)
                 cover_page_text = pdf.getPage(0).extractText()
                 publication_title = get_publication_title(webgazette.referrer)
+                print(publication_title)
                 publication_subtitle = get_publication_subtitle(webgazette.referrer,
                                                                 webgazette.label)
+                if publication_subtitle:
+                    print(publication_subtitle)
                 special_issue = get_special_issue(webgazette.referrer)
+                if special_issue:
+                    print(special_issue)
                 issue_number = get_issue_number(webgazette.referrer, webgazette.label)
+                print("issue %r" % issue_number)
                 volume_number = get_volume_number(webgazette.referrer, cover_page_text)
+                print("volume %r" % volume_number)
                 jurisdiction_code = get_jurisdiction_code(webgazette.referrer)
                 unique_id = get_unique_id(publication_title,
                                           publication_subtitle,
@@ -83,7 +91,7 @@ def main():
                     unique_id=unique_id,
                     pagecount=pagecount,
                 )
-                session.add(archived_gazette)
+                # session.add(archived_gazette)
 
         except UnicodeEncodeError:
             print('UnicodeEncodeError')
@@ -96,28 +104,28 @@ def get_publication_title(referrer):
     url = urlparse(referrer)
     if url.hostname == 'www.gpwonline.co.za':
         if url.path in {
-                '/Pages/Provincial-Gazettes-Eastern-Cape.aspx',
-                '/Pages/Provincial-Gazettes-Gauteng.aspx',
-                '/Pages/Provincial-Gazettes-KwaZulu-Natal.aspx',
-                '/Pages/Provincial-Gazettes-Limpopo.aspx',
-                '/Pages/Provincial-Gazettes-Mpumalanga.aspx',
-                '/Pages/Provincial-Gazettes-North-West.aspx',
-                '/Pages/Provincial-Gazettes-Northern-Cape.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-Eastern-Cape.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-Gauteng.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-KwaZulu-Natal.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-Limpopo.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-Mpumalanga.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-North-West.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-Northern-Cape.aspx',
         }:
             return 'Provincial Gazette'
         elif url.path in {
-                '/Pages/Published-Legal-Gazettes.aspx',
-                '/Pages/Published-Liquor-Licenses.aspx',
-                '/Pages/Published-National-Government-Gazettes.aspx',
-                '/Pages/Published-National-Regulation-Gazettes.aspx',
-                '/Pages/Published-Separate-Gazettes.aspx',
-                '/Pages/Road-Access-Permits.aspx',
+                '/Gazettes/Pages/Published-Legal-Gazettes.aspx',
+                '/Gazettes/Pages/Published-Liquor-Licenses.aspx',
+                '/Gazettes/Pages/Published-National-Government-Gazettes.aspx',
+                '/Gazettes/Pages/Published-National-Regulation-Gazettes.aspx',
+                '/Gazettes/Pages/Published-Separate-Gazettes.aspx',
+                '/Gazettes/Pages/Road-Access-Permits.aspx',
         }:
             return 'Government Gazette'
-        elif url.path == '/Pages/Published-Tender-Bulletin.aspx':
+        elif url.path == '/Gazettes/Pages/Published-Tender-Bulletin.aspx':
             return 'Tender Bulletin'
         else:
-            raise Exception
+            raise Exception("unknown path '%s'" % url.path)
     elif url.hostname in {
             'www.westerncape.gov.za'
     }:
@@ -129,28 +137,28 @@ def get_publication_title(referrer):
 def get_publication_subtitle(referrer, label):
     url = urlparse(referrer)
     if url.hostname == 'www.gpwonline.co.za':
-        if url.path == '/Pages/Published-National-Regulation-Gazettes.aspx':
+        if url.path == '/Gazettes/Pages/Published-National-Regulation-Gazettes.aspx':
             return 'Regulation Gazette'
-        elif url.path == '/Pages/Published-Legal-Gazettes.aspx':
+        elif url.path == '/Gazettes/Pages/Published-Legal-Gazettes.aspx':
             return 'Legal Gazette XX'
         elif url.path in {
-                '/Pages/Provincial-Gazettes-Eastern-Cape.aspx',
-                '/Pages/Provincial-Gazettes-Gauteng.aspx',
-                '/Pages/Provincial-Gazettes-KwaZulu-Natal.aspx',
-                '/Pages/Provincial-Gazettes-Limpopo.aspx',
-                '/Pages/Provincial-Gazettes-Mpumalanga.aspx',
-                '/Pages/Provincial-Gazettes-North-West.aspx',
-                '/Pages/Provincial-Gazettes-Northern-Cape.aspx',
-                '/Pages/Published-Legal-Gazettes.aspx',
-                '/Pages/Published-Liquor-Licenses.aspx',
-                '/Pages/Published-National-Government-Gazettes.aspx',
-                '/Pages/Published-Separate-Gazettes.aspx',
-                '/Pages/Road-Access-Permits.aspx',
-                '/Pages/Published-Tender-Bulletin.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-Eastern-Cape.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-Gauteng.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-KwaZulu-Natal.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-Limpopo.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-Mpumalanga.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-North-West.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-Northern-Cape.aspx',
+                '/Gazettes/Pages/Published-Legal-Gazettes.aspx',
+                '/Gazettes/Pages/Published-Liquor-Licenses.aspx',
+                '/Gazettes/Pages/Published-National-Government-Gazettes.aspx',
+                '/Gazettes/Pages/Published-Separate-Gazettes.aspx',
+                '/Gazettes/Pages/Road-Access-Permits.aspx',
+                '/Gazettes/Pages/Published-Tender-Bulletin.aspx',
         }:
             return None
         else:
-            raise Exception
+            raise Exception("unknown path '%s'" % url.path)
     elif url.hostname in {
             'www.westerncape.gov.za'
     }:
@@ -162,24 +170,24 @@ def get_publication_subtitle(referrer, label):
 def get_special_issue(referrer):
     url = urlparse(referrer)
     if url.hostname == 'www.gpwonline.co.za':
-        if url.path == '/Pages/Published-Liquor-Licenses.aspx':
+        if url.path == '/Gazettes/Pages/Published-Liquor-Licenses.aspx':
             return 'Liquor Licenses'
-        elif url.path == '/Pages/Road-Access-Permits.aspx':
+        elif url.path == '/Gazettes/Pages/Road-Access-Permits.aspx':
             return 'Legal Gazette XX'
         elif url.path in {
-                '/Pages/Provincial-Gazettes-Eastern-Cape.aspx',
-                '/Pages/Provincial-Gazettes-Gauteng.aspx',
-                '/Pages/Provincial-Gazettes-KwaZulu-Natal.aspx',
-                '/Pages/Provincial-Gazettes-Limpopo.aspx',
-                '/Pages/Provincial-Gazettes-Mpumalanga.aspx',
-                '/Pages/Provincial-Gazettes-North-West.aspx',
-                '/Pages/Provincial-Gazettes-Northern-Cape.aspx',
-                '/Pages/Published-Legal-Gazettes.aspx',
-                '/Pages/Published-National-Government-Gazettes.aspx',
-                '/Pages/Published-Separate-Gazettes.aspx',
-                '/Pages/Published-Legal-Gazettes.aspx',
-                '/Pages/Published-Tender-Bulletin.aspx',
-                '/Pages/Published-National-Regulation-Gazettes.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-Eastern-Cape.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-Gauteng.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-KwaZulu-Natal.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-Limpopo.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-Mpumalanga.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-North-West.aspx',
+                '/Gazettes/Pages/Provincial-Gazettes-Northern-Cape.aspx',
+                '/Gazettes/Pages/Published-Legal-Gazettes.aspx',
+                '/Gazettes/Pages/Published-National-Government-Gazettes.aspx',
+                '/Gazettes/Pages/Published-Separate-Gazettes.aspx',
+                '/Gazettes/Pages/Published-Legal-Gazettes.aspx',
+                '/Gazettes/Pages/Published-Tender-Bulletin.aspx',
+                '/Gazettes/Pages/Published-National-Regulation-Gazettes.aspx',
         }:
             return None
         else:
@@ -193,6 +201,49 @@ def get_special_issue(referrer):
 
 
 def get_issue_number(referrer, label):
+    url = urlparse(referrer)
+    if url.hostname == 'www.gpwonline.co.za':
+        regex = '^(\d+)[_ ]\d'
+    elif url.hostname == 'www.westerncape.gov.za':
+        regex = '^[a-zA-Z ]+(\d+)\D?-'
+    else:
+        raise Exception
+    try:
+        return re.search(regex, label).group(1)
+    except AttributeError:
+        raise Exception("Can't find issue number in '%s'" % label)
+
+
+def get_volume_number(referrer, cover_page_text):
+    regex = 'Vol. ?(\d+)'
+    try:
+        return re.search(regex, cover_page_text).group(1)
+    except AttributeError:
+        raise Exception("Can't find volume number in %r" % cover_page_text)
+    return 0
+
+
+def get_jurisdiction_code(referrer):
+    return 'ZA'
+
+
+def get_unique_id(publication_title,
+                  publication_subtitle,
+                  jurisdiction_code,
+                  volume_number,
+                  issue_number,
+                  special_issue):
+    return '1'
+
+
+def get_archive_path(publication_title,
+                     publication_subtitle,
+                     jurisdiction_code,
+                     volume_number,
+                     issue_number,
+                     special_issue,
+                     publication_date):
+    return '/'
 
 
 if __name__ == "__main__":
