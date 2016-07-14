@@ -148,7 +148,7 @@ class ArchivedGazette(Base):
             "pagecount": {
                 "type": "integer",
                 "minimum": 1,
-                "maximum": 1000,
+                "maximum": 3200,
             },
         },
     }
