@@ -77,6 +77,7 @@ class ArchivedGazette(Base):
     # volume number etc. as appropriate for the particular publication.
     unique_id = Column(String, unique=True, nullable=False)
     # Date on which this entry was created
+    pagecount = Column(Integer, nullable=False)
     created_at = Column(DateTime(timezone=True),
                         nullable=False,
                         server_default=func.now())

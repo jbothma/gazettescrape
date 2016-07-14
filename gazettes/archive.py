@@ -10,13 +10,8 @@ from sqlalchemy.orm import sessionmaker
 from urlparse import urlparse
 import os
 from shutil import copyfile
-from pdfminer.pdfparser import PDFParser
-from pdfminer.pdfdocument import PDFDocument
-from pdfminer.pdfpage import PDFPage
-from pdfminer.pdfpage import PDFTextExtractionNotAllowed
-from pdfminer.pdfinterp import PDFResourceManager
-from pdfminer.pdfinterp import PDFPageInterpreter
-from pdfminer.pdfdevice import PDFDevice
+import pyPdf
+
 
 WEB_SCRAPE_STORE_URI = "file:///home/jdb/proj/code4sa/corpdata/scrapyfilestore"
 LOCAL_CACHE_STORE_PATH = "../archivecachefilestore"
@@ -45,14 +40,90 @@ def main():
                 copyfile(scraped_path, cached_gazette_path)
 
         # Archive the gazette
-        archived_g = ArchivedGazette(
-            original_uri=webgazette.original_uri,
-            publication_date=webgazette.published_date,
-        )
-        print(webgazette.referrer)
-        print(archived_g)
+        print("\n%s\n%s" % (webgazette.original_uri, cached_gazette_path))
+        try:
+            with file(cached_gazette_path, 'rb') as f:
+                pdf = pyPdf.PdfFileReader(f)
+                if pdf.isEncrypted:
+                    print("ENCRYPTED")
+                    pdf.decrypt('')
+                ArchivedGazette
+                pagecount = pdf.getNumPages()
+                cover_page_text = pdf.getPage(0).extractText()
+                publication_title = publication_title(webgazette.referrer)
+                publication_subtitle = publication_subtitle(webgazette.referrer)
+                special_issue = special_issue(webgazette.referrer)
+                issue_number = issue_number(webgazette.label)
+                volume_number = volume_number(webgazette.referrer, cover_page_text)
+                jurisdiction_code = jurisdiction_code(webgazette.referrer)
+                unique_id = unique_id(publication_title,
+                                      publication_subtitle,
+                                      jurisdiction_code,
+                                      volume_number,
+                                      issue_number,
+                                      special_issue)
+                archive_path = archive_path(publication_title,
+                                            publication_subtitle,
+                                            jurisdiction_code,
+                                            volume_number,
+                                            issue_number,
+                                            special_issue,
+                                            webgazette.published_date)
+                archived_gazette = ArchivedGazette(
+                    original_uri=webgazette.original_uri,
+                    archive_path=archive_path,
+                    publication_title=publication_title,
+                    publication_subtitle=publication_subtitle,
+                    special_issue=special_issue,
+                    issue_number=issue_number,
+                    volume_number=volume_number,
+                    jurisdiction_code=jurisdiction_code,
+                    publication_date=webgazette.published_date,
+                    unique_id=unique_id,
+                    pagecount=pagecount,
+                )
+                session.add(archived_gazette)
 
+        except UnicodeEncodeError:
+            print('UnicodeEncodeError')
+
+    session.commit()
     engine.dispose()
+
+
+def publication_title(referrer):
+    url = urlparse(referrer)
+    if url.hostname == 'www.gpwonline.co.za':
+        if url.path in {
+                '/Pages/Provincial-Gazettes-Eastern-Cape.aspx',
+                '/Pages/Provincial-Gazettes-Gauteng.aspx',
+                '/Pages/Provincial-Gazettes-KwaZulu-Natal.aspx',
+                '/Pages/Provincial-Gazettes-Limpopo.aspx',
+                '/Pages/Provincial-Gazettes-Mpumalanga.aspx',
+                '/Pages/Provincial-Gazettes-North-West.aspx',
+                '/Pages/Provincial-Gazettes-Northern-Cape.aspx',
+        }:
+            return 'Provincial Gazette'
+        elif url.path in {
+                '/Pages/Published-Legal-Gazettes.aspx',
+                '/Pages/Published-Liquor-Licenses.aspx',
+                '/Pages/Published-National-Government-Gazettes.aspx',
+                '/Pages/Published-National-Regulation-Gazettes.aspx',
+                '/Pages/Published-Separate-Gazettes.aspx',
+                '/Pages/Road-Access-Permits.aspx',
+        }:
+            return 'Government Gazette'
+        elif url.path == '/Pages/Published-Tender-Bulletin.aspx':
+            return 'Tender Bulletin'
+        else:
+            raise Exception
+    elif url.hostname in {
+            'www.westerncape.gov.za',
+            'www.capegateway.gov.za',
+    }:
+        return 'Provincial Gazette'
+    else:
+        raise Exception
 
 
 if __name__ == "__main__":
