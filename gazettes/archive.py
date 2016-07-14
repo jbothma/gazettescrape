@@ -32,11 +32,12 @@ def main():
     tmpdir = mkdtemp(prefix='gazettes-archive')
     engine = create_engine(DB_URI)
     Session = sessionmaker(bind=engine)
-    session = Session()
+    webscraped_sesh = Session()
     web_scrape_store_uri = urlparse(WEB_SCRAPE_STORE_URI)
     cache_path = LOCAL_CACHE_STORE_PATH
 
-    for webgazette in session.query(WebScrapedGazette):
+    for webgazette in webscraped_sesh.query(WebScrapedGazette):
+        archive_sesh = Session()
         print
         # Get the PDF
         cached_gazette_path = os.path.join(cache_path, webgazette.store_path)
@@ -120,12 +121,12 @@ def main():
                     'pagecount': pagecount,
                 })
                 print(archived_gazette)
-                # session.add(archived_gazette)
+                archive_sesh.add(archived_gazette)
 
         except UnicodeEncodeError:
             print('UnicodeEncodeError')
 
-    session.commit()
+        archive_sesh.commit()
     engine.dispose()
 
 
