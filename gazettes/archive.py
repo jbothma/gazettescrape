@@ -408,7 +408,7 @@ def get_base_name(title, subtitle):
 def special_slug(special_issue):
     return {
         'Liquor Licenses': 'liquor-licenses',
-        'Road Carried Permits': 'road-carrier-permits'
+        'Road Carrier Permits': 'road-carrier-permits'
     }[special_issue]
 
 
