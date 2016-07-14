@@ -4,7 +4,7 @@ structured path, and maintain a database of the gazettes in their
 structured paths.
 """
 
-from gazettes.models import WebScrapedGazette
+from gazettes.models import WebScrapedGazette, ArchivedGazette
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from urlparse import urlparse
@@ -40,12 +40,17 @@ def main():
             if not os.path.exists(cached_gazette_dir):
                 os.makedirs(cached_gazette_dir)
             if web_scrape_store_uri.scheme == 'file':
-                scraped_path = os.path.join(web_scrape_store_uri.path, webgazette.store_path)
+                scraped_path = os.path.join(web_scrape_store_uri.path,
+                                            webgazette.store_path)
                 copyfile(scraped_path, cached_gazette_path)
 
-
-        with open(cached_gazette_path, 'rb') as f:
-
+        # Archive the gazette
+        archived_g = ArchivedGazette(
+            original_uri=webgazette.original_uri,
+            publication_date=webgazette.published_date,
+        )
+        print(webgazette.referrer)
+        print(archived_g)
 
     engine.dispose()
 
