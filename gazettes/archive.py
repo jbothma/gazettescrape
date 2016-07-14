@@ -36,7 +36,9 @@ def main():
     web_scrape_store_uri = urlparse(WEB_SCRAPE_STORE_URI)
     cache_path = LOCAL_CACHE_STORE_PATH
 
-    for webgazette in webscraped_sesh.query(WebScrapedGazette):
+    for webgazette in webscraped_sesh.query(WebScrapedGazette)\
+                                     .filter(WebScrapedGazette.manually_ignored == False)\
+                                     .all():
         archive_sesh = Session()
         print
         # Get the PDF

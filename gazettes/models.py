@@ -1,5 +1,5 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Date, DateTime
+from sqlalchemy import Column, Integer, String, Date, DateTime, Boolean
 import sqlalchemy.sql.functions as func
 from jsonschema import validate
 
@@ -37,6 +37,7 @@ class WebScrapedGazette(Base):
     referrer = Column(String,
                       nullable=False,
                       index=True)
+    manually_ignored = Column(Boolean, default=False, nullable=False)
 
     def __repr__(self):
         return "<WebScrapedGazette(id=%r, label='%s', published_date='%s'," \
@@ -69,7 +70,7 @@ class ArchivedGazette(Base):
     special_issue = Column(String, unique=False, nullable=True)
     # AKA Gazette number. e.g. 40101
     issue_number = Column(Integer, unique=False, nullable=False)
-    volume_number = Column(Integer, unique=False, nullable=False)
+    volume_number = Column(Integer, unique=False, nullable=True)
     # ISO 3166-1 alpha-2 country code or ISO 3166-2 principle subdivision code
     # e.g. ZA for South Africa, ZA-LP for Limpopo
     jurisdiction_code = Column(String, nullable=False)
@@ -147,7 +148,7 @@ class ArchivedGazette(Base):
             "pagecount": {
                 "type": "integer",
                 "minimum": 1,
-                "maximum": 200,
+                "maximum": 1000,
             },
         },
     }
