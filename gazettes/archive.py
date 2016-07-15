@@ -9,7 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from urlparse import urlparse
 import os
-from shutil import copyfile
+from shutil import move
 import re
 from tempfile import mkdtemp
 import subprocess
@@ -48,7 +48,7 @@ def main():
             if web_scrape_store_uri.scheme == 'file':
                 scraped_path = os.path.join(web_scrape_store_uri.path,
                                             webgazette.store_path)
-                copyfile(scraped_path, cached_gazette_path)
+                move(scraped_path, cached_gazette_path)
         else:
             print("Cache HIT %s" % webgazette.store_path)
 
