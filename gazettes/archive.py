@@ -21,6 +21,10 @@ GAZETTE_DB_URI = 'postgres://gazettes@localhost/web_scraped_gazette'
 DB_URI = 'postgres://gazettes@localhost/gazettes'
 
 
+class NeedsOCRError(Exception):
+    pass
+
+
 def main():
     tmpdir = mkdtemp(prefix='gazettes-archive')
     engine = create_engine(DB_URI)
@@ -49,68 +53,71 @@ def main():
             print("Cache HIT %s" % webgazette.store_path)
 
         # Archive the PDF
-        print("%s\n%s" % (webgazette.original_uri, cached_gazette_path))
+        try:
+            print("%s\n%s" % (webgazette.original_uri, cached_gazette_path))
 
-        cover_page_text = get_cover_page_text(cached_gazette_path)
-        if is_gazette_index(cover_page_text):
-            continue
+            cover_page_text = get_cover_page_text(cached_gazette_path)
+            if is_gazette_index(cover_page_text):
+                continue
 
-        pagecount = get_page_count(cached_gazette_path)
-        print(pagecount)
+            pagecount = get_page_count(cached_gazette_path)
+            print(pagecount)
 
-        publication_title = get_publication_title(webgazette.referrer,
-                                                  webgazette.label)
-        print(publication_title)
-        publication_subtitle = get_publication_subtitle(webgazette.referrer,
-                                                        webgazette.label)
-        if publication_subtitle:
-            print(publication_subtitle)
-        special_issue = get_special_issue(webgazette.referrer)
-        if special_issue:
-            print(special_issue)
-        language_edition = get_language_edition(webgazette.referrer,
-                                                webgazette.label)
-        if language_edition:
-            print(language_edition)
-        issue_number = get_issue_number(webgazette.referrer, webgazette.label)
-        print("issue %r" % issue_number)
-        volume_number = get_volume_number(webgazette.referrer, cover_page_text)
-        print("volume %r" % volume_number)
-        jurisdiction_code = get_jurisdiction_code(webgazette.referrer,
-                                                  webgazette.label)
-        part_number = get_part_number(webgazette.referrer,
-                                      webgazette.label)
-        if part_number is not None:
-            print("part %r" % part_number)
-        unique_id = get_unique_id(publication_title,
-                                  publication_subtitle,
-                                  jurisdiction_code,
-                                  volume_number,
-                                  issue_number,
-                                  part_number,
-                                  language_edition)
-        print(unique_id)
-        archive_path = get_archive_path(unique_id,
-                                        jurisdiction_code,
-                                        special_issue,
-                                        webgazette.published_date)
-        print(archive_path)
-        archived_gazette = ArchivedGazette.fromDict({
-            'original_uri': webgazette.original_uri,
-            'archive_path': archive_path,
-            'publication_title': publication_title,
-            'publication_subtitle': publication_subtitle,
-            'special_issue': special_issue,
-            'language_edition': language_edition,
-            'issue_number': issue_number,
-            'volume_number': volume_number,
-            'jurisdiction_code': jurisdiction_code,
-            'publication_date': webgazette.published_date,
-            'unique_id': unique_id,
-            'pagecount': pagecount,
-        })
-        print(archived_gazette)
-        archive_sesh.add(archived_gazette)
+            publication_title = get_publication_title(webgazette.referrer,
+                                                      webgazette.label)
+            print(publication_title)
+            publication_subtitle = get_publication_subtitle(webgazette.referrer,
+                                                            webgazette.label)
+            if publication_subtitle:
+                print(publication_subtitle)
+            special_issue = get_special_issue(webgazette.referrer)
+            if special_issue:
+                print(special_issue)
+            language_edition = get_language_edition(webgazette.referrer,
+                                                    webgazette.label)
+            if language_edition:
+                print(language_edition)
+            issue_number = get_issue_number(webgazette.referrer, webgazette.label)
+            print("issue %r" % issue_number)
+            volume_number = get_volume_number(webgazette.referrer, cover_page_text)
+            print("volume %r" % volume_number)
+            jurisdiction_code = get_jurisdiction_code(webgazette.referrer,
+                                                      webgazette.label)
+            part_number = get_part_number(webgazette.referrer,
+                                          webgazette.label)
+            if part_number is not None:
+                print("part %r" % part_number)
+            unique_id = get_unique_id(publication_title,
+                                      publication_subtitle,
+                                      jurisdiction_code,
+                                      volume_number,
+                                      issue_number,
+                                      part_number,
+                                      language_edition)
+            print(unique_id)
+            archive_path = get_archive_path(unique_id,
+                                            jurisdiction_code,
+                                            special_issue,
+                                            webgazette.published_date)
+            print(archive_path)
+            archived_gazette = ArchivedGazette.fromDict({
+                'original_uri': webgazette.original_uri,
+                'archive_path': archive_path,
+                'publication_title': publication_title,
+                'publication_subtitle': publication_subtitle,
+                'special_issue': special_issue,
+                'language_edition': language_edition,
+                'issue_number': issue_number,
+                'volume_number': volume_number,
+                'jurisdiction_code': jurisdiction_code,
+                'publication_date': webgazette.published_date,
+                'unique_id': unique_id,
+                'pagecount': pagecount,
+            })
+            print(archived_gazette)
+            archive_sesh.add(archived_gazette)
+        except NeedsOCRError, e:
+            print(e)
 
         archive_sesh.commit()
     engine.dispose()
@@ -307,7 +314,7 @@ def get_volume_number(referrer, cover_page_text):
         try:
             return int(re.search(regex, cover_page_text).group(1))
         except AttributeError:
-            raise Exception("Can't find volume number in %r" % cover_page_text)
+            raise NeedsOCRError("Can't find volume number in %r" % cover_page_text)
     elif url.hostname == 'www.westerncape.gov.za':
         return None
     else:
