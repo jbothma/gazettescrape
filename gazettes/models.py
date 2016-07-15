@@ -51,6 +51,31 @@ class ArchivedGazette(Base):
     information to refer to a specific gazette issue and as far as possible
     avoid duplicate files based the gazette's metadata while supporting
     optional part splits and language-specific editions.
+
+    The unique ID is intended to identify a single instance of a document.
+    we need to be able to match those now original_uris to already-scraped
+    documents and not create duplicates in our exports or search interface:
+    - If the website where gazettes are scraped from changes
+    - If the labels used in the links where we scrape them from change
+    - If we use scanned sources
+    volume and issue number aren't sufficient - sometimes extraordinaries are
+    published on existing issue numbers.
+    Possible Strategies for automatically handling duplicates:
+    - add an auto-increment integer suffix
+    - add the label suffix e.g. Separate or Liquor or Elec
+    - add the date
+    None of these really deal with the fact that sometimes duplicate IDs
+    are calculated because of mistakes e.g. real duplicates, or labels being
+    incorrect on the website.
+    e.g. http://www.gpwonline.co.za/Gazettes/Gazettes/2539_8-9_LimpSeparate.pdf
+    and http://www.gpwonline.co.za/Gazettes/Gazettes/2539_3-7_LimpSeparate.pdf
+    where the former is really 2593 with digits switched.
+
+    The risk with automatically making IDs using some of the above strategies
+    for these cases is that changes on a website or new sources could result in
+    automatically letting thousands of duplicates in, while the number
+    of duplicate keys are around 20 out of 5000 so it's fine to exclude them
+    pending manual metadata extraction and ID definition.
     """
     __tablename__ = 'archived_gazette'
 
