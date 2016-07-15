@@ -47,7 +47,10 @@ class WebScrapedGazette(Base):
 
 class ArchivedGazette(Base):
     """
-    Data about a gazette in the archive
+    This models gazette files in the structured archive. It aims to provide
+    information to refer to a specific gazette issue and as far as possible
+    avoid duplicate files based the gazette's metadata while supporting
+    optional part splits and language-specific editions.
     """
     __tablename__ = 'archived_gazette'
 
@@ -85,6 +88,10 @@ class ArchivedGazette(Base):
     # editions but sometimes there are dedicated editions e.g. to announce an
     # ascented act.
     language_edition = Column(String, unique=False, nullable=True)
+    # The part number. If the original_uri document includes all parts, or if the
+    # relevant gazette consisted of a single part, this is null. Otherwise this
+    # is the part number contained in the document
+    part = Column(Integer, unique=False, nullable=True)
     created_at = Column(DateTime(timezone=True),
                         nullable=False,
                         server_default=func.now())
@@ -154,10 +161,14 @@ class ArchivedGazette(Base):
             "pagecount": {
                 "type": "integer",
                 "minimum": 1,
-                "maximum": 3200,
+                "maximum": 8000,
             },
             "language_edition": {"oneOf": [
                 {"type": "string"},
+                {"type": "null"},
+            ]},
+            "part": {"oneOf": [
+                {"type": "integer"},
                 {"type": "null"},
             ]},
         },
