@@ -265,19 +265,23 @@ def get_part_number(referrer, label):
 
 
 def get_language_edition(referrer, label):
+    """
+    'Provincial Gazette Extraordinary 6445a - 18 June 2007'
+    'Provincial Gazette Extraordinary 6445e - 18 June 2007'
+    """
     url = urlparse(referrer)
     if url.hostname == 'www.gpwonline.co.za':
         return None
     elif url.hostname == 'www.westerncape.gov.za':
-        regex = '^[a-zA-Z ]+\d+([ae][^x]) -'
+        regex = '^[a-zA-Z ]+\d+([ae]) -'
     else:
         raise Exception
     match = re.search(regex, label)
     if match:
         return {
-            'a': 'af',
-            'e': 'en',
-        }[match.group(1)[0]]
+            'a': 'AF',
+            'e': 'EN',
+        }[match.group(1)]
     else:
         return None
 
