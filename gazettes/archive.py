@@ -325,7 +325,7 @@ def get_jurisdiction_code(referrer, label):
     url = urlparse(referrer)
     if url.hostname == 'www.gpwonline.co.za':
         if url.path == '/Gazettes/Pages/Provincial-Gazettes-Eastern-Cape.aspx':
-            return 'ZA-WC'
+            return 'ZA-EC'
         elif url.path == '/Gazettes/Pages/Provincial-Gazettes-Gauteng.aspx':
             return 'ZA-GT'
         elif url.path == '/Gazettes/Pages/Provincial-Gazettes-KwaZulu-Natal.aspx':
