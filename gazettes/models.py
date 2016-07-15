@@ -80,6 +80,11 @@ class ArchivedGazette(Base):
     unique_id = Column(String, unique=True, nullable=False)
     # Date on which this entry was created
     pagecount = Column(Integer, nullable=False)
+    # The ISO 639-1 language code if it's a special edition in a given language.
+    # Most gazettes are only issued in bilingual english/afrikaans/(xhoza)
+    # editions but sometimes there are dedicated editions e.g. to announce an
+    # ascented act.
+    language_edition = Column(String, unique=False, nullable=True)
     created_at = Column(DateTime(timezone=True),
                         nullable=False,
                         server_default=func.now())
@@ -113,6 +118,7 @@ class ArchivedGazette(Base):
             publication_date=dict['publication_date'],
             unique_id=dict['unique_id'],
             pagecount=dict['pagecount'],
+            language_edition=dict['language_edition'],
         )
 
     schema = {
@@ -150,5 +156,9 @@ class ArchivedGazette(Base):
                 "minimum": 1,
                 "maximum": 3200,
             },
+            "language_edition": {"oneOf": [
+                {"type": "string"},
+                {"type": "null"},
+            ]},
         },
     }

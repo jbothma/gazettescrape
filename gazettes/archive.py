@@ -88,6 +88,10 @@ def main():
                 special_issue = get_special_issue(webgazette.referrer)
                 if special_issue:
                     print(special_issue)
+                language_edition = get_language_edition(webgazette.referrer,
+                                                        webgazette.label)
+                if language_edition:
+                    print(language_edition)
                 issue_number = get_issue_number(webgazette.referrer, webgazette.label)
                 print("issue %r" % issue_number)
                 volume_number = get_volume_number(webgazette.referrer, cover_page_text)
@@ -99,7 +103,7 @@ def main():
                                           jurisdiction_code,
                                           volume_number,
                                           issue_number,
-                                          special_issue)
+                                          language_edition)
                 print(unique_id)
                 archive_path = get_archive_path(publication_title,
                                                 publication_subtitle,
@@ -107,6 +111,7 @@ def main():
                                                 volume_number,
                                                 issue_number,
                                                 special_issue,
+                                                language_edition,
                                                 webgazette.published_date)
                 print(archive_path)
                 archived_gazette = ArchivedGazette.fromDict({
@@ -115,6 +120,7 @@ def main():
                     'publication_title': publication_title,
                     'publication_subtitle': publication_subtitle,
                     'special_issue': special_issue,
+                    'language_edition': language_edition,
                     'issue_number': issue_number,
                     'volume_number': volume_number,
                     'jurisdiction_code': jurisdiction_code,
@@ -261,12 +267,30 @@ def get_special_issue(referrer):
         raise Exception
 
 
+def get_language_edition(referrer, label):
+    url = urlparse(referrer)
+    if url.hostname == 'www.gpwonline.co.za':
+        return None
+    elif url.hostname == 'www.westerncape.gov.za':
+        regex = '^[a-zA-Z ]+\d+([ae]) -'
+    else:
+        raise Exception
+    match = re.search(regex, label)
+    if match:
+        return {
+            'a': 'af',
+            'e': 'en',
+        }[match.group(1)]
+    else:
+        return None
+
+
 def get_issue_number(referrer, label):
     url = urlparse(referrer)
     if url.hostname == 'www.gpwonline.co.za':
         regex = '^(\d+)[_ ]\d'
     elif url.hostname == 'www.westerncape.gov.za':
-        regex = '^[a-zA-Z ]+(\d+)\D?-'
+        regex = '^[a-zA-Z ]+(\d+)[ae]? -'
     else:
         raise Exception
     try:
@@ -341,19 +365,25 @@ def get_unique_id(publication_title,
                   jurisdiction_code,
                   volume_number,
                   issue_number,
-                  special_issue):
+                  language_edition):
+    if language_edition:
+        language_edition_suffix = "-%s" % language_edition
+    else:
+        language_edition_suffix = ''
     if volume_number is None:
-        return "%s-%s-no-%s" % (
+        return "%s-%s-no-%s%s" % (
             title_slug(publication_title),
             jurisdiction_code,
-            issue_number
+            issue_number,
+            language_edition_suffix
         )
     else:
-        return "%s-%s-vol-%s-no-%s" % (
+        return "%s-%s-vol-%s-no-%s%s" % (
             title_slug(publication_title),
             jurisdiction_code,
             volume_number,
-            issue_number
+            issue_number,
+            language_edition_suffix
         )
 
 
@@ -371,15 +401,21 @@ def get_archive_path(publication_title,
                      volume_number,
                      issue_number,
                      special_issue,
+                     language_edition,
                      publication_date):
     base_name = get_base_name(publication_title, publication_subtitle)
+    if language_edition:
+        language_edition_suffix = "-%s" % language_edition
+    else:
+        language_edition_suffix = ''
     if volume_number is None:
-        return "/%s/%s/%s-%s-no-%s-dated-%s.pdf" % (
+        return "/%s/%s/%s-%s-no-%s%s-dated-%s.pdf" % (
             jurisdiction_code,
             publication_date.year,
             base_name,
             jurisdiction_code,
             issue_number,
+            language_edition_suffix,
             publication_date.isoformat()
         )
     else:
@@ -387,13 +423,14 @@ def get_archive_path(publication_title,
             special_suffix = "-%s" % special_slug(special_issue)
         else:
             special_suffix = ''
-        return "/%s/%s/%s-%s-vol-%s-no-%s-dated-%s%s.pdf" % (
+        return "/%s/%s/%s-%s-vol-%s-no-%s%s-dated-%s%s.pdf" % (
             jurisdiction_code,
             publication_date.year,
             base_name,
             jurisdiction_code,
             volume_number,
             issue_number,
+            language_edition_suffix,
             publication_date.isoformat(),
             special_suffix,
         )
