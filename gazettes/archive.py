@@ -195,7 +195,7 @@ def get_publication_subtitle(referrer, label):
         if url.path == '/Gazettes/Pages/Published-National-Regulation-Gazettes.aspx':
             return 'Regulation Gazette'
         elif url.path == '/Gazettes/Pages/Published-Legal-Gazettes.aspx':
-            regex = 'Legal ?([A-C])'
+            regex = 'Legal? ?([A-C])'
             return "Legal Gazette %s" % re.search(regex, label).group(1)
         elif url.path in {
                 '/Gazettes/Pages/Provincial-Gazettes-Eastern-Cape.aspx',
@@ -298,7 +298,7 @@ def get_issue_number(referrer, label):
     if url.hostname == 'www.gpwonline.co.za':
         regex = '^(\d+)[_ ]\d'
     elif url.hostname == 'www.westerncape.gov.za':
-        regex = '^[a-zA-Z ]+(\d+)[ae]? ?-'
+        regex = '^[a-zA-Z ]+(\d+)[ae]? ?(Extraordinary )?-'
     else:
         raise Exception
     try:
