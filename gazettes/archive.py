@@ -11,15 +11,8 @@ from urlparse import urlparse
 import os
 from shutil import copyfile
 import re
-from pdfminer.pdfparser import PDFParser
-from pdfminer.pdfdocument import PDFDocument
-from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
-from pdfminer.converter import TextConverter
-from pdfminer.layout import LAParams
-from pdfminer.pdfpage import PDFPage
-import StringIO
 from tempfile import mkdtemp
-
+import subprocess
 
 WEB_SCRAPE_STORE_URI = "file:///home/jdb/proj/code4sa/corpdata/scrapyfilestore"
 LOCAL_CACHE_STORE_PATH = "../archivecachefilestore"
@@ -55,113 +48,91 @@ def main():
         else:
             print("Cache HIT %s" % webgazette.store_path)
 
-        # Archive the gazette
+        # Archive the PDF
         print("%s\n%s" % (webgazette.original_uri, cached_gazette_path))
 
-        password = ""
-        ensure_extractable(cached_gazette_path,
-                           password,
-                           tmpdir,
-                           webgazette.store_path)
+        cover_page_text = get_cover_page_text(cached_gazette_path)
+        if is_gazette_index(cover_page_text):
+            continue
 
-        with open(cached_gazette_path, 'rb') as fp:
-            rsrcmgr = PDFResourceManager()
-            outfp = StringIO.StringIO()
-            device = TextConverter(rsrcmgr, outfp, codec='utf-8', laparams=LAParams())
-            interpreter = PDFPageInterpreter(rsrcmgr, device)
-            pages = list(PDFPage.get_pages(fp))
-            cover_page = pages[0]
-            interpreter.process_page(cover_page)
-            device.close()
+        pagecount = get_page_count(cached_gazette_path)
+        print(pagecount)
 
-            cover_page_text = outfp.getvalue()
-            if is_gazette_index(cover_page_text):
-                continue
-
-            pagecount = len(pages)
-            print(pagecount)
-
-            publication_title = get_publication_title(webgazette.referrer,
-                                                      webgazette.label)
-            print(publication_title)
-            publication_subtitle = get_publication_subtitle(webgazette.referrer,
-                                                            webgazette.label)
-            if publication_subtitle:
-                print(publication_subtitle)
-            special_issue = get_special_issue(webgazette.referrer)
-            if special_issue:
-                print(special_issue)
-            language_edition = get_language_edition(webgazette.referrer,
-                                                    webgazette.label)
-            if language_edition:
-                print(language_edition)
-            issue_number = get_issue_number(webgazette.referrer, webgazette.label)
-            print("issue %r" % issue_number)
-            volume_number = get_volume_number(webgazette.referrer, cover_page_text)
-            print("volume %r" % volume_number)
-            jurisdiction_code = get_jurisdiction_code(webgazette.referrer,
-                                                      webgazette.label)
-            part_number = get_part_number(webgazette.referrer,
-                                          webgazette.label)
-            if part_number is not None:
-                print("part %r" % part_number)
-            unique_id = get_unique_id(publication_title,
-                                      publication_subtitle,
-                                      jurisdiction_code,
-                                      volume_number,
-                                      issue_number,
-                                      part_number,
-                                      language_edition)
-            print(unique_id)
-            archive_path = get_archive_path(publication_title,
-                                            publication_subtitle,
-                                            jurisdiction_code,
-                                            volume_number,
-                                            issue_number,
-                                            part_number,
-                                            special_issue,
-                                            language_edition,
-                                            webgazette.published_date)
-            print(archive_path)
-            archived_gazette = ArchivedGazette.fromDict({
-                'original_uri': webgazette.original_uri,
-                'archive_path': archive_path,
-                'publication_title': publication_title,
-                'publication_subtitle': publication_subtitle,
-                'special_issue': special_issue,
-                'language_edition': language_edition,
-                'issue_number': issue_number,
-                'volume_number': volume_number,
-                'jurisdiction_code': jurisdiction_code,
-                'publication_date': webgazette.published_date,
-                'unique_id': unique_id,
-                'pagecount': pagecount,
-            })
-            print(archived_gazette)
-            archive_sesh.add(archived_gazette)
+        publication_title = get_publication_title(webgazette.referrer,
+                                                  webgazette.label)
+        print(publication_title)
+        publication_subtitle = get_publication_subtitle(webgazette.referrer,
+                                                        webgazette.label)
+        if publication_subtitle:
+            print(publication_subtitle)
+        special_issue = get_special_issue(webgazette.referrer)
+        if special_issue:
+            print(special_issue)
+        language_edition = get_language_edition(webgazette.referrer,
+                                                webgazette.label)
+        if language_edition:
+            print(language_edition)
+        issue_number = get_issue_number(webgazette.referrer, webgazette.label)
+        print("issue %r" % issue_number)
+        volume_number = get_volume_number(webgazette.referrer, cover_page_text)
+        print("volume %r" % volume_number)
+        jurisdiction_code = get_jurisdiction_code(webgazette.referrer,
+                                                  webgazette.label)
+        part_number = get_part_number(webgazette.referrer,
+                                      webgazette.label)
+        if part_number is not None:
+            print("part %r" % part_number)
+        unique_id = get_unique_id(publication_title,
+                                  publication_subtitle,
+                                  jurisdiction_code,
+                                  volume_number,
+                                  issue_number,
+                                  part_number,
+                                  language_edition)
+        print(unique_id)
+        archive_path = get_archive_path(unique_id,
+                                        jurisdiction_code,
+                                        special_issue,
+                                        webgazette.published_date)
+        print(archive_path)
+        archived_gazette = ArchivedGazette.fromDict({
+            'original_uri': webgazette.original_uri,
+            'archive_path': archive_path,
+            'publication_title': publication_title,
+            'publication_subtitle': publication_subtitle,
+            'special_issue': special_issue,
+            'language_edition': language_edition,
+            'issue_number': issue_number,
+            'volume_number': volume_number,
+            'jurisdiction_code': jurisdiction_code,
+            'publication_date': webgazette.published_date,
+            'unique_id': unique_id,
+            'pagecount': pagecount,
+        })
+        print(archived_gazette)
+        archive_sesh.add(archived_gazette)
 
         archive_sesh.commit()
     engine.dispose()
 
 
-def ensure_extractable(cached_gazette_path, password, tmpdir, store_path):
-    with open(cached_gazette_path, 'rb') as fp:
-        parser = PDFParser(fp)
-        document = PDFDocument(parser, password)
-        if not document.is_extractable:
-            fp.close()
-            print("### not extractable")
-            tmppath = os.path.join(tmpdir, store_path)
-            if not os.path.exists(os.path.dirname(tmppath)):
-                os.makedirs(os.path.dirname(tmppath))
-            result = os.system("qpdf --password=%s --decrypt %s %s"
-                               % (password, cached_gazette_path, tmppath))
-            if result == 0:
-                copyfile(tmppath, cached_gazette_path)
-            else:
-                raise Exception("qpd exit status %r" % result)
-        else:
-            fp.close()
+def get_cover_page_text(cached_gazette_path):
+    result = os.system("pdftotext -f 1 -l 1 %s" % cached_gazette_path)
+    if result == 0:
+        pre, ext = os.path.splitext(cached_gazette_path)
+        with open(pre + '.txt', 'r') as f:
+            return f.read()
+    else:
+        raise Exception("pdf_to_text exit status %r" % result)
+
+
+def get_page_count(cached_gazette_path):
+    info = subprocess.check_output(['pdfinfo', cached_gazette_path])
+    regex = 'Pages:\s+(\d+)\s'
+    try:
+        return int(re.search(regex, info).group(1))
+    except AttributeError:
+        raise Exception("Can't find page count in %r" % info)
 
 
 def is_gazette_index(cover_page_text):
@@ -298,7 +269,7 @@ def get_language_edition(referrer, label):
     if url.hostname == 'www.gpwonline.co.za':
         return None
     elif url.hostname == 'www.westerncape.gov.za':
-        regex = '^[a-zA-Z ]+\d+([ae]) -'
+        regex = '^[a-zA-Z ]+\d+([ae][^x]) -'
     else:
         raise Exception
     match = re.search(regex, label)
@@ -306,7 +277,7 @@ def get_language_edition(referrer, label):
         return {
             'a': 'af',
             'e': 'en',
-        }[match.group(1)]
+        }[match.group(1)[0]]
     else:
         return None
 
@@ -402,86 +373,43 @@ def get_unique_id(publication_title,
     else:
         part_number_suffix = "-part-%s" % part_number
     if volume_number is None:
-        return "%s-%s-no-%s%s%s" % (
-            title_slug(publication_title,
-                       publication_subtitle),
+        return "%s-%s-no-%s%s%s%s" % (
+            get_base_name(publication_title,
+                          publication_subtitle),
             jurisdiction_code,
             issue_number,
             subissue_slug(publication_subtitle),
-            language_edition_suffix
-        )
-    else:
-        return "%s-%s-vol-%s-no-%s%s%s" % (
-            title_slug(publication_title,
-                       publication_subtitle),
-            jurisdiction_code,
-            volume_number,
-            issue_number,
-            subissue_slug(publication_subtitle),
-            language_edition_suffix
-        )
-
-
-def get_archive_path(publication_title,
-                     publication_subtitle,
-                     jurisdiction_code,
-                     volume_number,
-                     issue_number,
-                     part_number,
-                     special_issue,
-                     language_edition,
-                     publication_date):
-    base_name = get_base_name(publication_title, publication_subtitle)
-    if language_edition:
-        language_edition_suffix = "-%s" % language_edition
-    else:
-        language_edition_suffix = ''
-    if part_number is None:
-        part_number_suffix = ''
-    else:
-        part_number_suffix = "-part-%s" % part_number
-    if volume_number is None:
-        return "/%s/%s/%s-%s-no-%s%s%s%s-dated-%s.pdf" % (
-            jurisdiction_code,
-            publication_date.year,
-            base_name,
-            jurisdiction_code,
-            issue_number,
-            subissue_slug(publication_subtitle),
-            language_edition_suffix,
             part_number_suffix,
-            publication_date.isoformat()
+            language_edition_suffix
         )
     else:
-        if special_issue:
-            special_suffix = "-%s" % special_slug(special_issue)
-        else:
-            special_suffix = ''
-        return "/%s/%s/%s-%s-vol-%s-no-%s%s-dated-%s%s%s.pdf" % (
-            jurisdiction_code,
-            publication_date.year,
-            base_name,
+        return "%s-%s-vol-%s-no-%s%s%s%s" % (
+            get_base_name(publication_title,
+                          publication_subtitle),
             jurisdiction_code,
             volume_number,
             issue_number,
             subissue_slug(publication_subtitle),
-            language_edition_suffix,
-            publication_date.isoformat(),
-            special_suffix,
+            part_number_suffix,
+            language_edition_suffix
         )
 
 
-def title_slug(title, subtitle):
-    """Base name for unique IDs"""
-    return {
-        ('Government Gazette', None): 'government-gazette',
-        ('Government Gazette', 'Regulation Gazette'): 'government-gazette',
-        ('Government Gazette', 'Legal Gazette A'): 'government-gazette',
-        ('Government Gazette', 'Legal Gazette B'): 'government-gazette',
-        ('Government Gazette', 'Legal Gazette C'): 'government-gazette',
-        ('Tender Bulletin', None): 'tender-bulletin',
-        ('Provincial Gazette', None): 'provincial-gazette',
-    }[(title, subtitle)]
+def get_archive_path(unique_id,
+                     jurisdiction_code,
+                     special_issue,
+                     publication_date):
+    if special_issue:
+        special_suffix = "-%s" % special_slug(special_issue)
+    else:
+        special_suffix = ''
+    return "/%s/%s/%s-dated-%s%s.pdf" % (
+        jurisdiction_code,
+        publication_date.year,
+        unique_id,
+        publication_date.isoformat(),
+        special_suffix,
+    )
 
 
 def get_base_name(title, subtitle):
