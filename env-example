@@ -1,0 +1,5 @@
+export WEB_SCRAPE_STORE_URI="file:///home/jdb/proj/code4sa/corpdata/scrapyfilestore"
+export LOCAL_CACHE_STORE_PATH="../archivecachefilestore"
+export ARCHIVE_STORE="file:///home/jdb/proj/code4sa/corpdata/archivefilestore"
+export DB_URI="postgres://gazettes@localhost/gazettes"
+export LOG_LEVEL="DEBUG"

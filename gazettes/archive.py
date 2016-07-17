@@ -17,13 +17,15 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
-WEB_SCRAPE_STORE_URI = "file:///home/jdb/proj/code4sa/corpdata/scrapyfilestore"
-LOCAL_CACHE_STORE_PATH = "../archivecachefilestore"
-ARCHIVE_STORE = "file:///home/jdb/proj/code4sa/corpdata/archivefilestore"
-GAZETTE_DB_URI = 'postgres://gazettes@localhost/web_scraped_gazette'
-DB_URI = 'postgres://gazettes@localhost/gazettes'
+WEB_SCRAPE_STORE_URI = os.environ.get('WEB_SCRAPE_STORE_URI')
+LOCAL_CACHE_STORE_PATH = os.environ.get('LOCAL_CACHE_STORE_PATH')
+ARCHIVE_STORE = os.environ.get('ARCHIVE_STORE')
+GAZETTE_DB_URI = os.environ.get('GAZETTE_DB_URI')
+DB_URI = os.environ.get('DB_URI')
+LOG_LEVEL = os.environ.get('LOG_LEVEL')
+
+logger.setLevel(LOG_LEVEL)
 
 
 class NeedsOCRError(Exception):

@@ -12,7 +12,7 @@ Depends on the following DB URI being accessible or overridden to another
 GAZETTE_DB_URI = 'postgres://gazettes@localhost/gazettes'
 ```
 
-## Running
+## Scraping
 
 ### Government Printing Works (GPW) spider
 
@@ -88,6 +88,16 @@ To store the item feed in S3, set/override the following settings:
 ```
 FEED_URI = s3://code4sa-gazettes/scrape-feed/spider-%(name)s/start-%(time)s.json
 FEED_FORMAT = jsonlines
+```
+
+## Archival
+
+Archival figures out the unique ID of the gazettes and archives them under
+human-readable paths in the configured storage location.
+
+```
+source env-example
+PYTHONPATH=. python gazettes/archive.py
 ```
 
 ## Gazette types
