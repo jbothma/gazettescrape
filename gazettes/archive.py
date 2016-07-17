@@ -9,7 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from urlparse import urlparse
 import os
-from shutil import copyfile, move
+import shutil
 import re
 from tempfile import mkdtemp
 import subprocess
@@ -17,6 +17,8 @@ import logging
 import pdb
 import sys
 import getopt
+import boto
+from boto.s3.key import Key
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -56,7 +58,8 @@ def main(argv):
             archive(pdb_on_error)
         except Exception, e:
             logger.exception(e)
-            pdb.set_trace()
+            ype, value, tb = sys.exc_info()
+            pdb.post_mortem(tb)
     else:
         archive(pdb_on_error)
 
@@ -67,7 +70,7 @@ def archive(pdb_on_error):
     Session = sessionmaker(bind=engine)
     webscraped_sesh = Session()
     web_scrape_store_uri = urlparse(WEB_SCRAPE_STORE_URI)
-    archive_store_uri = urlparse(ARCHIVE_STORE_URI)
+    archive_put = put_function(ARCHIVE_STORE_URI)
     cache_path = LOCAL_CACHE_STORE_PATH
 
     for webgazette in webscraped_sesh.query(WebScrapedGazette)\
@@ -85,11 +88,12 @@ def archive(pdb_on_error):
                 scraped_path = os.path.join(web_scrape_store_uri.path,
                                             webgazette.store_path)
                 try:
-                    copyfile(scraped_path, cached_gazette_path)
+                    shutil.copyfile(scraped_path, cached_gazette_path)
                 except IOError, e:
                     logger.exception(e)
                     if pdb_on_error:
-                        pdb.set_trace()
+                        ype, value, tb = sys.exc_info()
+                        pdb.post_mortem(tb)
             else:
                 raise Exception
         else:
@@ -156,20 +160,13 @@ def archive(pdb_on_error):
                                  webgazette,
                                  existing_archived_gazette)
             else:
-                if archive_store_uri.scheme == 'file':
-                    full_archive_path = os.path.join(archive_store_uri.path,
-                                                     archived_gazette.archive_path)
-                    ensure_dirs(full_archive_path)
-                    # Move and not copy because copy ends up taking too much
-                    # space during dev.
-                    move(cached_gazette_path, full_archive_path)
-                else:
-                    raise Exception
+                archive_put(cached_gazette_path, archived_gazette.archive_path)
                 archive_sesh.add(archived_gazette)
         except Exception, e:
             logger.exception("Error for %r", webgazette)
             if pdb_on_error:
-                pdb.set_trace()
+                ype, value, tb = sys.exc_info()
+                pdb.post_mortem(tb)
 
         archive_sesh.commit()
     webscraped_sesh.rollback()
@@ -509,6 +506,41 @@ def ensure_dirs(path):
     dirs = os.path.dirname(path)
     if not os.path.exists(dirs):
         os.makedirs(dirs)
+
+
+def put_function(store_uri):
+    uri = urlparse(store_uri)
+    if uri.scheme == 'file':
+        store_path = uri.path
+        return lambda from_filename, to_relative_path: local_put(from_filename,
+                                                                 store_path,
+                                                                 to_relative_path)
+    elif uri.scheme == 's3':
+        access_key_id = uri.username
+        access_key = uri.password
+        bucket_name = uri.hostname
+        key_prefix = uri.path
+        conn = boto.connect_s3(access_key_id, access_key)
+        bucket = conn.get_bucket(bucket_name)
+        return lambda from_filename, to_relative_path: s3_put(bucket,
+                                                              from_filename,
+                                                              key_prefix,
+                                                              to_relative_path)
+
+
+def local_put(from_filename, store_path, to_relative_path):
+    full_to_path = os.path.join(store_path, to_relative_path)
+    ensure_dirs(full_to_path)
+    shutils.copyfile(from_filename, full_to_path)
+
+
+def s3_put(bucket, from_filename, to_key_prefix, to_key_suffix):
+    key = os.path.join(to_key_prefix, to_key_suffix)
+    k = Key(bucket)
+    k.key = key
+    k.set_contents_from_filename(from_filename)
+    k.make_public()
+
 
 
 if __name__ == "__main__":
