@@ -69,7 +69,7 @@ def archive(pdb_on_error):
     engine = create_engine(DB_URI)
     Session = sessionmaker(bind=engine)
     webscraped_sesh = Session()
-    web_scrape_store_uri = urlparse(WEB_SCRAPE_STORE_URI)
+    scrapestore_get = get_function(WEB_SCRAPE_STORE_URI)
     archive_put = put_function(ARCHIVE_STORE_URI)
     cache_path = LOCAL_CACHE_STORE_PATH
 
@@ -83,19 +83,7 @@ def archive(pdb_on_error):
         cached_gazette_path = os.path.join(cache_path, webgazette.store_path)
         if not os.path.exists(cached_gazette_path):
             logger.debug("Cache MISS %s", webgazette.store_path)
-            ensure_dirs(cached_gazette_path)
-            if web_scrape_store_uri.scheme == 'file':
-                scraped_path = os.path.join(web_scrape_store_uri.path,
-                                            webgazette.store_path)
-                try:
-                    shutil.copyfile(scraped_path, cached_gazette_path)
-                except IOError, e:
-                    logger.exception(e)
-                    if pdb_on_error:
-                        ype, value, tb = sys.exc_info()
-                        pdb.post_mortem(tb)
-            else:
-                raise Exception
+            scrapestore_get(webgazette.store_path, cached_gazette_path)
         else:
             logger.debug("Cache HIT %s", webgazette.store_path)
 
@@ -104,6 +92,7 @@ def archive(pdb_on_error):
             logger.debug("original_uri: %s", webgazette.original_uri)
             cover_page_text = get_cover_page_text(cached_gazette_path)
             if is_gazette_index(cover_page_text):
+                logger.debug("Ignoring index %r", webgazette.original_uri)
                 continue
 
             pagecount = get_page_count(cached_gazette_path)
@@ -160,8 +149,10 @@ def archive(pdb_on_error):
                                  webgazette,
                                  existing_archived_gazette)
             else:
+                logger.debug("Arching %r", archived_gazette.unique_id)
                 archive_put(cached_gazette_path, archived_gazette.archive_path)
                 archive_sesh.add(archived_gazette)
+                logger.debug("Done")
         except Exception, e:
             logger.exception("Error for %r", webgazette)
             if pdb_on_error:
@@ -508,6 +499,41 @@ def ensure_dirs(path):
         os.makedirs(dirs)
 
 
+def get_function(store_uri):
+    uri = urlparse(store_uri)
+    if uri.scheme == 'file':
+        store_path = uri.path
+        return lambda from_relative_path, to_filename: local_get(store_path,
+                                                                 from_relative_path,
+                                                                 to_filename)
+    elif uri.scheme == 's3':
+        access_key_id = uri.username
+        access_key = uri.password
+        bucket_name = uri.hostname
+        key_prefix = uri.path
+        conn = boto.connect_s3(access_key_id, access_key)
+        bucket = conn.get_bucket(bucket_name)
+        return lambda from_relative_path, to_filename: s3_get(bucket,
+                                                              key_prefix,
+                                                              from_relative_path,
+                                                              to_filename)
+    else:
+        raise Exception
+
+
+def local_get(store_path, from_relative_path, to_filename):
+    full_from_path = os.path.join(store_path, from_relative_path)
+    ensure_dirs(to_filename)
+    shutil.copyfile(full_from_path, to_filename)
+
+
+def s3_get(bucket, from_key_prefix, from_key_suffix, to_filename):
+    key = os.path.join(from_key_prefix, from_key_suffix)
+    k = Key(bucket)
+    k.key = key
+    k.get_contents_to_filename(to_filename)
+
+
 def put_function(store_uri):
     uri = urlparse(store_uri)
     if uri.scheme == 'file':
@@ -526,6 +552,8 @@ def put_function(store_uri):
                                                               from_filename,
                                                               key_prefix,
                                                               to_relative_path)
+    else:
+        raise Exception
 
 
 def local_put(from_filename, store_path, to_relative_path):
