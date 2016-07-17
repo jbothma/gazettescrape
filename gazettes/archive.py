@@ -13,6 +13,11 @@ from shutil import move
 import re
 from tempfile import mkdtemp
 import subprocess
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 WEB_SCRAPE_STORE_URI = "file:///home/jdb/proj/code4sa/corpdata/scrapyfilestore"
 LOCAL_CACHE_STORE_PATH = "../archivecachefilestore"
@@ -37,11 +42,11 @@ def main():
                                      .filter(WebScrapedGazette.manually_ignored == False)\
                                      .all():
         archive_sesh = Session()
-        print
+
         # Get the PDF
         cached_gazette_path = os.path.join(cache_path, webgazette.store_path)
         if not os.path.exists(cached_gazette_path):
-            print("Cache MISS %s" % webgazette.store_path)
+            logger.debug("Cache MISS %s", webgazette.store_path)
             cached_gazette_dir = os.path.dirname(cached_gazette_path)
             if not os.path.exists(cached_gazette_dir):
                 os.makedirs(cached_gazette_dir)
@@ -50,43 +55,43 @@ def main():
                                             webgazette.store_path)
                 move(scraped_path, cached_gazette_path)
         else:
-            print("Cache HIT %s" % webgazette.store_path)
+            logger.debug("Cache HIT %s", webgazette.store_path)
 
         # Archive the PDF
         try:
-            print("%s\n%s" % (webgazette.original_uri, cached_gazette_path))
+            logger.debug("%s\n%s", webgazette.original_uri, cached_gazette_path)
 
             cover_page_text = get_cover_page_text(cached_gazette_path)
             if is_gazette_index(cover_page_text):
                 continue
 
             pagecount = get_page_count(cached_gazette_path)
-            print(pagecount)
+            logger.debug(pagecount)
 
             publication_title = get_publication_title(webgazette.referrer,
                                                       webgazette.label)
-            print(publication_title)
+            logger.debug(publication_title)
             publication_subtitle = get_publication_subtitle(webgazette.referrer,
                                                             webgazette.label)
             if publication_subtitle:
-                print(publication_subtitle)
+                logger.debug(publication_subtitle)
             special_issue = get_special_issue(webgazette.referrer)
             if special_issue:
-                print(special_issue)
+                logger.debug(special_issue)
             language_edition = get_language_edition(webgazette.referrer,
                                                     webgazette.label)
             if language_edition:
-                print(language_edition)
+                logger.debug(language_edition)
             issue_number = get_issue_number(webgazette.referrer, webgazette.label)
-            print("issue %r" % issue_number)
+            logger.debug("issue %r", issue_number)
             volume_number = get_volume_number(webgazette.referrer, cover_page_text)
-            print("volume %r" % volume_number)
+            logger.debug("volume %r", volume_number)
             jurisdiction_code = get_jurisdiction_code(webgazette.referrer,
                                                       webgazette.label)
             part_number = get_part_number(webgazette.referrer,
                                           webgazette.label)
             if part_number is not None:
-                print("part %r" % part_number)
+                logger.debug("part %r", part_number)
             unique_id = get_unique_id(publication_title,
                                       publication_subtitle,
                                       jurisdiction_code,
@@ -94,12 +99,12 @@ def main():
                                       issue_number,
                                       part_number,
                                       language_edition)
-            print(unique_id)
+            logger.debug(unique_id)
             archive_path = get_archive_path(unique_id,
                                             jurisdiction_code,
                                             special_issue,
                                             webgazette.published_date)
-            print(archive_path)
+            logger.debug(archive_path)
             archived_gazette = ArchivedGazette.fromDict({
                 'original_uri': webgazette.original_uri,
                 'archive_path': archive_path,
@@ -114,10 +119,21 @@ def main():
                 'unique_id': unique_id,
                 'pagecount': pagecount,
             })
-            print(archived_gazette)
-            archive_sesh.add(archived_gazette)
-        except NeedsOCRError, e:
-            print(e)
+            logger.debug(webgazette.referrer)
+
+            existing_archived_gazette = archive_sesh \
+                                       .query(ArchivedGazette)\
+                                       .filter(ArchivedGazette.unique_id
+                                               == archived_gazette.unique_id,
+                                               ArchivedGazette.original_uri
+                                               != archived_gazette.original_uri)\
+                                       .first()
+            if existing_archived_gazette:
+                logger.error("Skipping %r because another ArchivedGazette exists with the same unique_id (%r)", webgazette, existing_archived_gazette)
+            else:
+                archive_sesh.add(archived_gazette)
+        except Exception, e:
+            logger.error(u"%r for %r", e, webgazette)
 
         archive_sesh.commit()
     engine.dispose()
@@ -296,7 +312,7 @@ def get_language_edition(referrer, label):
 def get_issue_number(referrer, label):
     url = urlparse(referrer)
     if url.hostname == 'www.gpwonline.co.za':
-        regex = '^(\d+)[_ ]\d'
+        regex = '^(\d+)[_ ]\w'
     elif url.hostname == 'www.westerncape.gov.za':
         regex = '^[a-zA-Z ]+(\d+)[ae]? ?(Extraordinary )?-'
     else:
