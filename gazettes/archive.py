@@ -9,18 +9,21 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from urlparse import urlparse
 import os
-from shutil import move
+from shutil import copyfile, move
 import re
 from tempfile import mkdtemp
 import subprocess
 import logging
+import pdb
+import sys
+import getopt
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 WEB_SCRAPE_STORE_URI = os.environ.get('WEB_SCRAPE_STORE_URI')
 LOCAL_CACHE_STORE_PATH = os.environ.get('LOCAL_CACHE_STORE_PATH')
-ARCHIVE_STORE = os.environ.get('ARCHIVE_STORE')
+ARCHIVE_STORE_URI = os.environ.get('ARCHIVE_STORE_URI')
 GAZETTE_DB_URI = os.environ.get('GAZETTE_DB_URI')
 DB_URI = os.environ.get('DB_URI')
 LOG_LEVEL = os.environ.get('LOG_LEVEL')
@@ -32,68 +35,87 @@ class NeedsOCRError(Exception):
     pass
 
 
-def main():
+def main(argv):
+    pdb_on_error = False
+
+    try:
+        opts, args = getopt.getopt(argv, "hd", ["help", "pdb"])
+    except getopt.GetoptError:
+        usage()
+        sys.exit(2)
+
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            usage()
+            sys.exit()
+        elif opt in ('-d', '--pdb'):
+            pdb_on_error = True
+
+    if pdb_on_error:
+        try:
+            archive(pdb_on_error)
+        except Exception, e:
+            logger.exception(e)
+            pdb.set_trace()
+    else:
+        archive(pdb_on_error)
+
+
+def archive(pdb_on_error):
     tmpdir = mkdtemp(prefix='gazettes-archive')
     engine = create_engine(DB_URI)
     Session = sessionmaker(bind=engine)
     webscraped_sesh = Session()
     web_scrape_store_uri = urlparse(WEB_SCRAPE_STORE_URI)
+    archive_store_uri = urlparse(ARCHIVE_STORE_URI)
     cache_path = LOCAL_CACHE_STORE_PATH
 
     for webgazette in webscraped_sesh.query(WebScrapedGazette)\
                                      .filter(WebScrapedGazette.manually_ignored == False)\
                                      .all():
+        logger.debug('------------------------------')
         archive_sesh = Session()
 
         # Get the PDF
         cached_gazette_path = os.path.join(cache_path, webgazette.store_path)
         if not os.path.exists(cached_gazette_path):
             logger.debug("Cache MISS %s", webgazette.store_path)
-            cached_gazette_dir = os.path.dirname(cached_gazette_path)
-            if not os.path.exists(cached_gazette_dir):
-                os.makedirs(cached_gazette_dir)
+            ensure_dirs(cached_gazette_path)
             if web_scrape_store_uri.scheme == 'file':
                 scraped_path = os.path.join(web_scrape_store_uri.path,
                                             webgazette.store_path)
-                move(scraped_path, cached_gazette_path)
+                try:
+                    copyfile(scraped_path, cached_gazette_path)
+                except IOError, e:
+                    logger.exception(e)
+                    if pdb_on_error:
+                        pdb.set_trace()
+            else:
+                raise Exception
         else:
             logger.debug("Cache HIT %s", webgazette.store_path)
 
         # Archive the PDF
         try:
-            logger.debug("%s\n%s", webgazette.original_uri, cached_gazette_path)
-
+            logger.debug("original_uri: %s", webgazette.original_uri)
             cover_page_text = get_cover_page_text(cached_gazette_path)
             if is_gazette_index(cover_page_text):
                 continue
 
             pagecount = get_page_count(cached_gazette_path)
-            logger.debug(pagecount)
-
             publication_title = get_publication_title(webgazette.referrer,
                                                       webgazette.label)
-            logger.debug(publication_title)
             publication_subtitle = get_publication_subtitle(webgazette.referrer,
                                                             webgazette.label)
-            if publication_subtitle:
-                logger.debug(publication_subtitle)
             special_issue = get_special_issue(webgazette.referrer)
-            if special_issue:
-                logger.debug(special_issue)
             language_edition = get_language_edition(webgazette.referrer,
                                                     webgazette.label)
-            if language_edition:
-                logger.debug(language_edition)
             issue_number = get_issue_number(webgazette.referrer, webgazette.label)
-            logger.debug("issue %r", issue_number)
             volume_number = get_volume_number(webgazette.referrer, cover_page_text)
-            logger.debug("volume %r", volume_number)
             jurisdiction_code = get_jurisdiction_code(webgazette.referrer,
                                                       webgazette.label)
             part_number = get_part_number(webgazette.referrer,
                                           webgazette.label)
-            if part_number is not None:
-                logger.debug("part %r", part_number)
             unique_id = get_unique_id(publication_title,
                                       publication_subtitle,
                                       jurisdiction_code,
@@ -101,12 +123,10 @@ def main():
                                       issue_number,
                                       part_number,
                                       language_edition)
-            logger.debug(unique_id)
             archive_path = get_archive_path(unique_id,
                                             jurisdiction_code,
                                             special_issue,
                                             webgazette.published_date)
-            logger.debug(archive_path)
             archived_gazette = ArchivedGazette.fromDict({
                 'original_uri': webgazette.original_uri,
                 'archive_path': archive_path,
@@ -121,23 +141,38 @@ def main():
                 'unique_id': unique_id,
                 'pagecount': pagecount,
             })
-            logger.debug(webgazette.referrer)
 
             existing_archived_gazette = archive_sesh \
                                        .query(ArchivedGazette)\
                                        .filter(ArchivedGazette.unique_id
-                                               == archived_gazette.unique_id,
-                                               ArchivedGazette.original_uri
-                                               != archived_gazette.original_uri)\
+                                               == archived_gazette.unique_id)\
                                        .first()
             if existing_archived_gazette:
-                logger.error("Skipping %r because another ArchivedGazette exists with the same unique_id (%r)", webgazette, existing_archived_gazette)
+                if existing_archived_gazette.original_uri == webgazette.original_uri:
+                    logger.debug("%r exists in the archive", archived_gazette.unique_id)
+                else:
+                    logger.error("Skipping %r because another ArchivedGazette " \
+                                 "exists with the same unique_id (%r)",
+                                 webgazette,
+                                 existing_archived_gazette)
             else:
+                if archive_store_uri.scheme == 'file':
+                    full_archive_path = os.path.join(archive_store_uri.path,
+                                                     archived_gazette.archive_path)
+                    ensure_dirs(full_archive_path)
+                    # Move and not copy because copy ends up taking too much
+                    # space during dev.
+                    move(cached_gazette_path, full_archive_path)
+                else:
+                    raise Exception
                 archive_sesh.add(archived_gazette)
         except Exception, e:
-            logger.error(u"%r for %r", e, webgazette)
+            logger.exception("Error for %r", webgazette)
+            if pdb_on_error:
+                pdb.set_trace()
 
         archive_sesh.commit()
+    webscraped_sesh.rollback()
     engine.dispose()
 
 
@@ -432,7 +467,7 @@ def get_archive_path(unique_id,
         special_suffix = "-%s" % special_slug(special_issue)
     else:
         special_suffix = ''
-    return "/%s/%s/%s-dated-%s%s.pdf" % (
+    return "%s/%s/%s-dated-%s%s.pdf" % (
         jurisdiction_code,
         publication_date.year,
         unique_id,
@@ -470,5 +505,11 @@ def subissue_slug(subtitle):
     }.get(subtitle, '')
 
 
+def ensure_dirs(path):
+    dirs = os.path.dirname(path)
+    if not os.path.exists(dirs):
+        os.makedirs(dirs)
+
+
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
