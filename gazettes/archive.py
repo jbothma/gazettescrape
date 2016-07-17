@@ -443,7 +443,7 @@ def get_base_name(title, subtitle):
     """Base name for archive path"""
     return {
         ('Government Gazette', None): 'government-gazette',
-        ('Government Gazette', 'Regulation Gazette'): 'regulation-gazette',
+        ('Government Gazette', 'Regulation Gazette'): 'government-gazette',
         ('Government Gazette', 'Legal Gazette A'): 'government-gazette',
         ('Government Gazette', 'Legal Gazette B'): 'government-gazette',
         ('Government Gazette', 'Legal Gazette C'): 'government-gazette',
@@ -464,6 +464,7 @@ def subissue_slug(subtitle):
         'Legal Gazette A': '-legal-notices-A',
         'Legal Gazette B': '-legal-notices-B',
         'Legal Gazette C': '-legal-notices-C',
+        'Regulation Gazette': '-regulation-gazette',
     }.get(subtitle, '')
 
 
