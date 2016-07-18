@@ -95,9 +95,24 @@ FEED_FORMAT = jsonlines
 Archival figures out the unique ID of the gazettes and archives them under
 human-readable paths in the configured storage location.
 
+### Locally/dev
+
 ```
 source env-example
 PYTHONPATH=. python gazettes/archive.py
+```
+
+### Production
+
+```
+dokku apps:create gazettescrape
+dokku docker-options:add gazettescrape run,deploy "-v /home/dokku/gazettescrape/scrapedcache:/scrapedcache"
+dokku config:set WEB_SCRAPE_STORE_URI="s3://aws-access-key-id:aws-access-key@code4sa-gazettes/scrape/" \
+                 ARCHIVE_STORE_URI="s3://aws-access-key-id:aws-access-key@code4sa-gazettes/archive/" \
+                 DB_URI="postgres://gazettes:password@hostname/gazettes" \
+                 LOG_LEVEL="INFO"
+# ... push repository to host ...
+dokku run python gazettes/archive.py
 ```
 
 ## Gazette types
