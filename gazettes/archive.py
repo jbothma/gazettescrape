@@ -149,7 +149,7 @@ def archive(pdb_on_error):
                                  webgazette,
                                  existing_archived_gazette)
             else:
-                logger.debug("Arching %r", archived_gazette.unique_id)
+                logger.debug("Archiving %r", archived_gazette.unique_id)
                 archive_put(cached_gazette_path, archived_gazette.archive_path)
                 archive_sesh.add(archived_gazette)
                 logger.debug("Done")
