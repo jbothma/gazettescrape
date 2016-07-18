@@ -1,5 +1,5 @@
-gazettes
 alembic_prod.ini
+env-*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

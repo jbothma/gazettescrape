@@ -1,5 +1,9 @@
 # gazettescrape - South African Government Gazette scraper
 
+## Non-python dependencies
+
+- qpdf
+
 ## Minimal Configuration
 
 Depends on the following DB URI being accessible or overridden to another
@@ -8,7 +12,7 @@ Depends on the following DB URI being accessible or overridden to another
 GAZETTE_DB_URI = 'postgres://gazettes@localhost/gazettes'
 ```
 
-## Running
+## Scraping
 
 ### Government Printing Works (GPW) spider
 
@@ -84,6 +88,16 @@ To store the item feed in S3, set/override the following settings:
 ```
 FEED_URI = s3://code4sa-gazettes/scrape-feed/spider-%(name)s/start-%(time)s.json
 FEED_FORMAT = jsonlines
+```
+
+## Archival
+
+Archival figures out the unique ID of the gazettes and archives them under
+human-readable paths in the configured storage location.
+
+```
+source env-example
+PYTHONPATH=. python gazettes/archive.py
 ```
 
 ## Gazette types
@@ -214,3 +228,44 @@ Free state doesn't have volumes and the series wraps on 1 April. Or at least it 
 - An example of an official reference to a gazette
   - _Government Notice 2432, Government Gazette, Vol. 400, No. 19377 of 19 Octover 1998_
   - Republic of South Africa. 2006. _Government Tender Bulletin Vol. 488 No. 2424._ Pretoria: Government Printing Works
+
+## Structured Gazette Archive
+
+Gazettes are to be stored according to the following stucture:
+
+```
+/south-africa/1998/government-gazette-vol-400-no-19377-dated-1998-10-19.pdf
+/western-cape/2007/western-cape-provincial-gazette-no-6454-dated-2007-07-27.pdf
+/south-africa/2016/tender-bulletin-vol-611-no-2916-dated-2016-05-13.pdf
+/free-state/2015/free-state-provincial-gazette-no-79-dated-2015-08-25.pdf
+/eastern-cape/2016/eastern-cape-provincial-gazette-vol-23-no-3703-dated-2016-07-12.pdf
+```
+
+That is (jurisdiction)/(publication year)/(unique-id).pdf
+
+Unique IDs for gazettes take the following form:
+
+```
+government-gazette-vol-400-no-19377-dated-1998-10-19
+western-cape-provincial-gazette-no-6454-dated-2007-07-27
+tender-bulletin-vol-611-no-2916-dated-2016-05-13
+free-state-provincial-gazette-no-79-dated-2015-08-25
+eastern-cape-provincial-gazette-vol-23-no-3703-dated-2016-07-12
+```
+
+That is:
+- Government Gazettes (published by GWP)
+  - government-gazette
+  - -(volume and issue number)
+  - -dated-(publication date in YYYY-MM-DD form)
+- Provincial Gazettes (published by GPW)
+  - (province short name)
+  - -provincial-gazette
+  - -(volume and issue number)
+  - -dated-(publication date in YYYY-MM-DD form)
+- Western Cape (published by Western Cape Provincial Govt)
+  - western-cape-provincial-gazette
+  - -(issue number)
+  - -dated-(publication date in YYYY-MM-DD form)
+- Free State (published by office of the premier of FS)
+  - TBC

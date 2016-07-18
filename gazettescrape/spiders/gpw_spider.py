@@ -20,7 +20,6 @@ class GpwSpider(scrapy.Spider):
         'http://www.gpwonline.co.za/Gazettes/Pages/Published-National-Government-Gazettes.aspx',
         'http://www.gpwonline.co.za/Gazettes/Pages/Published-National-Regulation-Gazettes.aspx',
         'http://www.gpwonline.co.za/Gazettes/Pages/Published-Separate-Gazettes.aspx',
-        'http://www.gpwonline.co.za/Gazettes/Pages/Published-Separate-Gazettes.aspx',
         'http://www.gpwonline.co.za/Gazettes/Pages/Published-Tender-Bulletin.aspx',
         'http://www.gpwonline.co.za/Gazettes/Pages/Road-Access-Permits.aspx',
     }

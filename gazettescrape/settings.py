@@ -69,7 +69,7 @@ ITEM_PIPELINES = {
     'gazettescrape.pipelines.db.DBPipeline': 2,
 }
 
-FILES_STORE = 'gazettes'
+FILES_STORE = '../scrapyfilestore'
 
 GAZETTE_DB_URI = 'postgres://gazettes@localhost/gazettes'
 
@@ -93,3 +93,5 @@ AUTOTHROTTLE_DEBUG = True
 #HTTPCACHE_DIR = 'httpcache'
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
+
+DOWNLOAD_TIMEOUT = 600
