@@ -1,4 +1,4 @@
-FROM jbothma/gazettescrape-base:latest
+FROM jbothma/gazettescrape-base-auto:latest
 
 RUN mkdir /app
 COPY gazettescrape /app/gazettescrape
